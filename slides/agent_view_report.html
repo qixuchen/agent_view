@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposal: Failure-Driven Data Artifacts</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #d1d5db;
+  }
+  .report {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 28px 0 40px;
+    gap: 28px;
+  }
+  .page-sheet {
+    width: 1280px;
+    flex-shrink: 0;
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.06),
+      0 4px 12px rgba(15, 23, 42, 0.1),
+      0 12px 32px rgba(15, 23, 42, 0.08);
+  }
+  .page-sheet iframe {
+    width: 1280px;
+    height: 720px;
+    border: none;
+    display: block;
+    vertical-align: top;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+  <div class="report">
+    <div class="page-sheet">
+      <iframe src="agent_view_motivation.html" title="Motivation: Change the Data, Not the Context"></iframe>
+    </div>
+    <div class="page-sheet">
+      <iframe src="agent_view_example.html" title="Motivating Example: A Hidden Link Between Two Sources"></iframe>
+    </div>
+    <div class="page-sheet">
+      <iframe src="agent_view_artifact.html" title="The Manifest and View Artifacts"></iframe>
+    </div>
+    <div class="page-sheet">
+      <iframe src="agent_view_pipeline.html" title="Pipeline: From Failures to Materialized Artifacts"></iframe>
+    </div>
+    <div class="page-sheet">
+      <iframe src="agent_view_merge_select.html" title="Research Questions: Merge and Select"></iframe>
+    </div>
+    <div class="page-sheet">
+      <iframe src="agent_view_benchmark.html" title="Benchmarks: Text2SQL First, Then Data Agents"></iframe>
+    </div>
+  </div>
+</body>
+</html>

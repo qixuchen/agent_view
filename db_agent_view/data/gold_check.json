@@ -1,0 +1,153 @@
+{
+  "task_count": 954,
+  "status_counts": {
+    "ok": 954
+  },
+  "dw_comparison_counts": {
+    "exact": 952,
+    "order_only": 2
+  },
+  "non_exact_task_ids": {
+    "float_tolerance": [],
+    "order_only": [
+      "dw_4377",
+      "dw_4423"
+    ],
+    "different": []
+  },
+  "error_task_ids": [],
+  "empty_result_task_ids": [
+    "dw_72",
+    "dw_579",
+    "dw_5147"
+  ],
+  "ordered_task_count": 683,
+  "row_count_distribution": {
+    "min": 0,
+    "median": 24,
+    "max": 249310
+  },
+  "tables": [
+    {
+      "table": "SIS_DEPARTMENT",
+      "db_agent_view": {
+        "rows": 128,
+        "checksum": "3189890049"
+      },
+      "dw": {
+        "rows": 128,
+        "checksum": "3189890049"
+      },
+      "identical": true
+    },
+    {
+      "table": "COURSE_CATALOG_SUBJECT_OFFERED",
+      "db_agent_view": {
+        "rows": 10000,
+        "checksum": "3386089600"
+      },
+      "dw": {
+        "rows": 10000,
+        "checksum": "3386089600"
+      },
+      "identical": true
+    },
+    {
+      "table": "SIS_COURSE_DESCRIPTION",
+      "db_agent_view": {
+        "rows": 695,
+        "checksum": "535634859"
+      },
+      "dw": {
+        "rows": 695,
+        "checksum": "535634859"
+      },
+      "identical": true
+    },
+    {
+      "table": "TIP_SUBJECT_OFFERED",
+      "db_agent_view": {
+        "rows": 10000,
+        "checksum": "143536118"
+      },
+      "dw": {
+        "rows": 10000,
+        "checksum": "143536118"
+      },
+      "identical": true
+    },
+    {
+      "table": "ACADEMIC_TERMS",
+      "db_agent_view": {
+        "rows": 144,
+        "checksum": "2354490352"
+      },
+      "dw": {
+        "rows": 144,
+        "checksum": "2354490352"
+      },
+      "identical": true
+    },
+    {
+      "table": "SUBJECT_OFFERED_SUMMARY",
+      "db_agent_view": {
+        "rows": 10000,
+        "checksum": "3372870390"
+      },
+      "dw": {
+        "rows": 10000,
+        "checksum": "3372870390"
+      },
+      "identical": true
+    },
+    {
+      "table": "SIS_SUBJECT_CODE",
+      "db_agent_view": {
+        "rows": 221,
+        "checksum": "2817200705"
+      },
+      "dw": {
+        "rows": 221,
+        "checksum": "2817200705"
+      },
+      "identical": true
+    },
+    {
+      "table": "ACADEMIC_TERMS_ALL",
+      "db_agent_view": {
+        "rows": 300,
+        "checksum": "3642714643"
+      },
+      "dw": {
+        "rows": 300,
+        "checksum": "3642714643"
+      },
+      "identical": true
+    },
+    {
+      "table": "TIP_DETAIL",
+      "db_agent_view": {
+        "rows": 10000,
+        "checksum": "2666876575"
+      },
+      "dw": {
+        "rows": 10000,
+        "checksum": "2666876575"
+      },
+      "identical": true
+    },
+    {
+      "table": "LIBRARY_SUBJECT_OFFERED",
+      "db_agent_view": {
+        "rows": 10000,
+        "checksum": "1573694851"
+      },
+      "dw": {
+        "rows": 10000,
+        "checksum": "1573694851"
+      },
+      "identical": true
+    }
+  ],
+  "all_tables_identical": true
+}

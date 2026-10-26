@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pipeline: From Failures to Materialized Artifacts</title>
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --rq: #b45309; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e5e7eb; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .slide {
+    width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 30px; display: grid; grid-template-rows: auto 1fr; row-gap: 0;
+  }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent); }
+  .part { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .main { display: flex; flex-direction: column; justify-content: center; gap: 0; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); column-gap: 22px; }
+
+  /* bracket over stages 2-4 */
+  .bracket { grid-column: 2 / 5; border: 2px solid var(--rq); border-bottom: none; height: 14px; margin-top: 30px;
+             position: relative; }
+  .bracket span { position: absolute; top: -27px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+                  font-size: 16px; font-weight: 700; color: var(--rq); }
+
+  .stages { align-items: stretch; }
+  .stage { position: relative; border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 6px;
+           padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 230px; background: #fff; }
+  .stage.rq { border-top-color: var(--rq); background: #fffbeb; }
+  .stage:not(:last-child)::after { content: "→"; position: absolute; right: -21px; top: 40%; font-size: 26px; font-weight: 700;
+                                   color: var(--accent); }
+  .no { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .name { font-size: 24px; font-weight: 700; color: var(--accent); line-height: 1.15; }
+  .stage.rq .name { color: var(--rq); }
+  .what { font-size: 19px; line-height: 1.45; }
+  .out { margin-top: auto; font-size: 15px; line-height: 1.4; color: #374151; border-top: 1px dashed var(--line);
+         padding-top: 8px; }
+  .out b { color: var(--muted); font-weight: 700; }
+  .q { margin-top: auto; font-size: 17px; line-height: 1.35; font-weight: 600; color: var(--rq); border-top: 1px dashed #f3c98b; padding-top: 8px; }
+
+</style>
+</head>
+<body>
+<section class="slide">
+  <header>
+    <h1>Pipeline: From Failures to Materialized Artifacts</h1>
+    <div class="part">Proposal · 4 / 6</div>
+  </header>
+
+  <div class="main">
+  <div class="grid"><div class="bracket"><span>Research questions (next page)</span></div></div>
+
+  <div class="grid stages">
+    <div class="stage">
+      <div class="no">STAGE 1</div>
+      <div class="name">Run</div>
+      <div class="what">Run the agent on training tasks.</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 2</div>
+      <div class="name">Propose</div>
+      <div class="what">Propose view artifacts for each task.</div>
+      <div class="q">How to propose?</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 3</div>
+      <div class="name">Merge</div>
+      <div class="what">Combine compatible artifacts.</div>
+      <div class="q">Which to merge?</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 4</div>
+      <div class="name">Select</div>
+      <div class="what">Pick artifacts to materialize based on utility and budget constraints.</div>
+      <div class="q">How to compute utility?</div>
+    </div>
+    <div class="stage">
+      <div class="no">STAGE 5</div>
+      <div class="name">Test</div>
+      <div class="what">Evaluate on <span style="white-space:nowrap">held-out</span> tasks.</div>
+    </div>
+  </div>
+
+  </div>
+</section>
+</body>
+</html>

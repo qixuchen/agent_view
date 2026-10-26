@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposal: Failure-Driven Data Artifacts (final)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #d1d5db; }
+  .report { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 28px 0 40px; gap: 28px; }
+  .page-sheet { width: 1280px; flex-shrink: 0; background: #fff; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.1), 0 12px 32px rgba(15, 23, 42, 0.08); }
+  .page-sheet .slide { margin: 0; width: 1280px; height: 720px; }
+</style>
+</head>
+<body>
+  <div class="report">
+    <div class="page-sheet report-page-1">
+      <style>.report-page-1{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db;}
+.report-page-1 *{box-sizing: border-box;}
+.report-page-1,.report-page-1{margin: 0; background: #e5e7eb;}
+.report-page-1{font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink);}
+.report-page-1 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 60px 40px; display: grid; grid-template-rows: auto auto 1fr; row-gap: 40px;}
+.report-page-1 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-1 h1{margin: 0; font-size: 34px; line-height: 1.1; color: var(--accent);}
+.report-page-1 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-1 .problem{background: #f3f4f6; border-left: 5px solid var(--ink); padding: 16px 24px;
+             font-size: 24px; line-height: 1.5;}
+.report-page-1 .cols{display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; align-content: start;}
+.report-page-1 .col{border-top: 4px solid var(--muted); padding-top: 14px;}
+.report-page-1 .col.ours{border-top-color: var(--accent); background: linear-gradient(#eef5fb, #fff 70%);}
+.report-page-1 .col h2{margin: 0 0 22px; font-size: 27px; line-height: 1.3; color: var(--muted); padding: 0 4px;}
+.report-page-1 .col.ours h2{color: var(--accent);}
+.report-page-1 .col h2 small{display: block; font-size: 16px; font-weight: 400; color: var(--muted); margin-top: 2px;}
+.report-page-1 .col ul{margin: 0; padding: 0 8px 0 28px; display: flex; flex-direction: column; gap: 26px;}
+.report-page-1 .col li{font-size: 22px; line-height: 1.5;}
+.report-page-1 .col li b{color: var(--ink);}
+.report-page-1 .col.ours li b{color: var(--accent);}
+.report-page-1 .note{display: block; color: var(--muted); font-size: 18px; margin-top: 4px;}</style>
+      <section class="slide">
+  <header>
+    <h1>Motivation: Change the Data, Not the Context</h1>
+    <div class="part">Proposal · 1 / 6</div>
+  </header>
+
+  <div class="problem">
+    Data agents often fail not because they cannot write SQL, but because they <b>misunderstand the data</b>.
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>Existing: learn knowledge from failures<small>TK-Boost, MIRA</small></h2>
+      <ul>
+        <li>They mine misconceptions from failed tasks and store them as <b>knowledge</b> in text.</li>
+        <li>For every new task, the right piece must be <b>retrieved</b> and applied again.</li>
+        <li>The stored dataset stays unchanged; the fix is injected into the agent's <b>context</b>.</li>
+      </ul>
+    </div>
+
+    <div class="col ours">
+      <h2>New: generate data artifacts<small> </small></h2>
+      <ul>
+        <li>We turn knowledge into a <b>data artifact</b>: a derived view over the original tables.</li>
+        <li>No retrieval needed. The agent's context stays <b>unchanged</b>; what changes is the <b>data</b> it can query.</li>
+        <li>Agents benefit from these views that make the complex task/query simpler.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+    </div>
+    <div class="page-sheet report-page-2">
+      <style>.report-page-2{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --bad: #b91c1c; --good: #047857;}
+.report-page-2 *{box-sizing: border-box;}
+.report-page-2,.report-page-2{margin: 0; background: #e5e7eb;}
+.report-page-2{font-family: "Segoe UI", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: var(--ink);}
+.report-page-2 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 28px; display: grid; grid-template-rows: auto auto 1fr; row-gap: 18px;}
+.report-page-2 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-2 h1{margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent);}
+.report-page-2 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-2 .question{background: #f3f4f6; border-left: 5px solid var(--ink); padding: 11px 20px;
+              font-size: 19px; line-height: 1.45; display: flex; justify-content: space-between; gap: 24px;}
+.report-page-2 .question .q b{font-weight: 700;}
+.report-page-2 .question .gold{white-space: nowrap; font-weight: 700; align-self: center;}
+.report-page-2 .src{font-size: 14px; color: var(--muted); font-weight: 400;}
+.report-page-2 .cols{display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; min-height: 0;}
+.report-page-2 .col{border-top: 4px solid var(--muted); padding-top: 10px; display: flex; flex-direction: column; gap: 10px;}
+.report-page-2 .col.ours{border-top-color: var(--accent);}
+.report-page-2 .col h2{margin: 0; font-size: 22px; color: var(--muted);}
+.report-page-2 .col.ours h2{color: var(--accent);}
+.report-page-2 .label{font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 3px;}
+.report-page-2 .label code{font-weight: 400;}
+.report-page-2 pre{margin: 0; background: #f9fafb; border: 1px solid var(--line); padding: 6px 10px;
+        font-family: Consolas, "Courier New", monospace; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap;}
+.report-page-2 table{border-collapse: collapse; width: 100%; font-size: 14px;}
+.report-page-2 th,.report-page-2 td{border-bottom: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top;}
+.report-page-2 th{background: #f3f4f6; font-weight: 600; white-space: nowrap;}
+.report-page-2 .zh{white-space: nowrap;}
+.report-page-2 .gloss{color: var(--muted); font-size: 12.5px;}
+.report-page-2 .hl{background: #fef3c7;}
+.report-page-2 .key{color: #c2410c; font-weight: 700;}
+.report-page-2 .link{display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--bad); font-weight: 600;
+          margin: -2px 0 -2px 18px;}
+.report-page-2 .link .dash{width: 2px; height: 26px; border-left: 2px dashed var(--bad);}
+.report-page-2 .link.ok{color: var(--good);}
+.report-page-2 .link.ok .dash{border-left: 2px solid var(--good);}
+.report-page-2 .term{color: #7c3aed; font-weight: 700;}
+.report-page-2 th.term,.report-page-2 th.renamed{color: #7c3aed; background: #ede9fe;}
+.report-page-2 .note{font-size: 14.5px; font-weight: 600; margin-top: 4px;}
+.report-page-2 .note.bad{color: #7c3aed;}
+.report-page-2 .note.good{color: var(--good);}
+.report-page-2 .trace{display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 18px; row-gap: 10px;}
+.report-page-2 .step{border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; background: #f9fafb;
+          font-family: Consolas, "Courier New", monospace; font-size: 16.5px;}
+.report-page-2 .arrow{color: var(--muted);}
+.report-page-2 .verdict{font-weight: 700;}
+.report-page-2 .verdict.bad{color: var(--bad);}
+.report-page-2 .verdict.good{color: var(--good);}
+.report-page-2 .why{font-size: 17px; line-height: 1.45; margin-top: auto; padding: 8px 12px; border-left: 3px solid var(--muted); background: #f9fafb;}
+.report-page-2 .col.ours .why{border-left-color: var(--accent); background: #eef5fb;}
+.report-page-2 .why b{color: var(--ink);}
+.report-page-2 .col.ours .why b{color: var(--accent);}</style>
+      <section class="slide">
+  <header>
+    <h1>Motivating Example</h1>
+    <div class="part">Proposal · 2 / 6</div>
+  </header>
+
+  <div class="question">
+    <div class="q"><b>Q:</b> In 2022, are the <span class="term">listing boards</span> of <i>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</i>
+      and <i>Long He Chan Zhi Di Chan Holdings Co., Ltd.</i> the same? <span class="src">(DataClaw task_116)</span></div>
+    <div class="gold">Gold: Yes</div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>Without artifact</h2>
+      <div>
+        <div class="label">Source 1: translation file <code>bilingual_translation_english_chinese.json</code></div>
+        <pre>"<span class="key">创玮锦智电器公司</span>": "Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.",
+"<span class="key">龙河产置地产控股公司</span>": "Long He Chan Zhi Di Chan Holdings Co., Ltd.",</pre>
+      </div>
+      <div class="link"><span class="dash"></span>✗ Linked only by the Chinese name; the agent never found this link</div>
+      <div>
+        <div class="label">Source 2: company records <code>company_profile.csv</code> (Chinese names only)</div>
+        <table>
+          <tr><th>bmCompanyName</th><th>exchange</th><th class="term">plate</th></tr>
+          <tr><td class="zh key">创玮锦智电器公司</td><td>深交所 <span class="gloss">SZSE</span></td><td>主板 <span class="gloss">Main Board</span></td></tr>
+          <tr><td class="zh key">龙河产置地产控股公司</td><td>港交所 <span class="gloss">HKEX</span></td><td>主板 <span class="gloss">Main Board</span></td></tr>
+        </table>
+        <div class="note bad">✗ The question says "listing board", but the column is named <code>plate</code></div>
+      </div>
+      <div>
+        <div class="label">Agent trace: reads Source 1, never opens Source 2</div>
+        <div class="trace">
+          <span class="step">ls database</span><span class="arrow">→</span>
+          <span class="step">look for the company names</span><span class="arrow">→</span>
+          <span class="step">read translation file, never find plate info</span><span class="arrow">→</span>
+          <span class="verdict bad">"No relevant data found" ✗</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col ours">
+      <h2>With artifact</h2>
+      <div>
+        <div class="label">View <code>company_dim</code>: Source 1 and Source 2 joined in one table</div>
+        <table>
+          <tr><th>name_en</th><th>name_zh</th><th>exchange</th><th class="renamed">listing_board</th></tr>
+          <tr class="hl"><td>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</td><td class="zh">创玮锦智电器公司</td><td class="zh">深交所 <span class="gloss">SZSE</span></td><td class="zh">主板 <span class="gloss">Main Board</span></td></tr>
+          <tr class="hl"><td>Long He Chan Zhi Di Chan Holdings Co., Ltd.</td><td class="zh">龙河产置地产控股公司</td><td class="zh">港交所 <span class="gloss">HKEX</span></td><td class="zh">主板 <span class="gloss">Main Board</span></td></tr>
+        </table>
+        <div class="note good">✓ Column renamed to match the question: <code>plate</code> → <code>listing_board</code></div>
+      </div>
+      <div>
+        <div class="label">Agent trace (expected)</div>
+        <div class="trace">
+          <span class="step">ls database</span><span class="arrow">→</span>
+          <span class="step">look for company names</span><span class="arrow">→</span>
+          <span class="step">find company name with listing_board presented</span><span class="arrow">→</span>
+          <span class="verdict good">"Yes" ✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    </div>
+    <div class="page-sheet report-page-3">
+      <style>.report-page-3{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db;}
+.report-page-3 *{box-sizing: border-box;}
+.report-page-3,.report-page-3{margin: 0; background: #e5e7eb;}
+.report-page-3{font-family: "Segoe UI", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: var(--ink);}
+.report-page-3 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 26px; display: grid; grid-template-rows: auto 1fr auto; row-gap: 18px;}
+.report-page-3 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-3 h1{margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent);}
+.report-page-3 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-3 .body{display: grid; grid-template-columns: 640px 1fr; column-gap: 36px; min-height: 0;}
+.report-page-3 .fig{display: flex; flex-direction: column; justify-content: center; min-height: 0;}
+.report-page-3 .box-title{font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 4px;}
+.report-page-3 .box-title span{font-weight: 400; color: var(--muted); letter-spacing: 0;}
+.report-page-3 .manifest{border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; background: #eef5fb;}
+.report-page-3 .entry{display: grid; grid-template-columns: 160px 1fr; font-size: 16px; line-height: 1.65; padding: 2px 4px;}
+.report-page-3 .entry code{font-weight: 700;}
+.report-page-3 .entry.sel{background: #fff; border: 1px solid var(--accent); border-radius: 4px;}
+.report-page-3 .entry .use{color: #374151;}
+.report-page-3 .connector{height: 18px; margin-bottom: 4px; margin-left: 70px; border-left: 2px solid var(--accent); position: relative;}
+.report-page-3 .connector::after{content: ""; position: absolute; left: -7px; bottom: -2px; border: 6px solid transparent;
+                      border-top: 8px solid var(--accent);}
+.report-page-3 .artifact{border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; display: flex; flex-direction: column; gap: 14px;}
+.report-page-3 .part-label{font-size: 16px; font-weight: 700; color: var(--muted); margin-bottom: 2px;}
+.report-page-3 .part-label .n{display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+                   color: #fff; text-align: center; font-size: 12px; line-height: 18px; margin-right: 6px;}
+.report-page-3 pre{margin: 0; background: #f9fafb; border: 1px solid var(--line); padding: 5px 9px;
+        font-family: Consolas, "Courier New", monospace; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap;}
+.report-page-3 pre .k{color: var(--accent); font-weight: 700;}
+.report-page-3 table{border-collapse: collapse; width: 100%; font-size: 14px;}
+.report-page-3 th,.report-page-3 td{border-bottom: 1px solid var(--line); padding: 5px 5px; text-align: left; white-space: nowrap;}
+.report-page-3 th{background: #f3f4f6; font-weight: 600;}
+.report-page-3 .gloss{color: var(--muted); font-size: 12px;}
+.report-page-3 .right{display: flex; flex-direction: column; gap: 34px; justify-content: center; min-height: 0;}
+.report-page-3 .store{display: grid; grid-template-columns: 84px 64px 1fr; align-items: center;}
+.report-page-3 .agent{text-align: center; font-size: 17px; font-weight: 700; color: var(--accent);}
+.report-page-3 .bot{font-size: 48px; line-height: 1.1;}
+.report-page-3 .reads{display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 30px 4px 30px 0;}
+.report-page-3 .ra{position: relative; font-size: 14px; color: var(--accent); font-weight: 600; text-align: center;
+        border-bottom: 2px solid var(--accent); padding-bottom: 2px; margin-right: 6px;}
+.report-page-3 .ra::after{content: ""; position: absolute; right: -9px; bottom: -7px; border: 6px solid transparent;
+               border-left: 9px solid var(--accent);}
+.report-page-3 .layers{display: flex; flex-direction: column;}
+.report-page-3 .layer{border-radius: 6px; padding: 10px 12px;}
+.report-page-3 .layer.art{border: 2px solid var(--accent); background: #eef5fb;}
+.report-page-3 .layer.raw{border: 2px solid #9ca3af; background: #f3f4f6;}
+.report-page-3 .lname{font-size: 17px; font-weight: 700; margin-bottom: 6px;}
+.report-page-3 .layer.art .lname{color: var(--accent);}
+.report-page-3 .layer.raw .lname{color: #4b5563;}
+.report-page-3 .lname span{font-weight: 400; color: var(--muted);}
+.report-page-3 .items{display: flex; flex-wrap: wrap; gap: 5px;}
+.report-page-3 .it{font-family: Consolas, "Courier New", monospace; font-size: 14.5px; background: #fff; border: 1px solid var(--line);
+        border-radius: 3px; padding: 2px 7px;}
+.report-page-3 .it.m{border-color: var(--accent); font-weight: 700;}
+.report-page-3 .built{font-size: 14px; color: var(--muted); text-align: center; padding: 3px 0;}
+.report-page-3 .points{margin: 0; padding: 0 0 0 22px; display: flex; flex-direction: column; gap: 18px;}
+.report-page-3 .points li{font-size: 20px; line-height: 1.5;}
+.report-page-3 .points li b{color: var(--accent);}
+.report-page-3 .flow{display: flex; align-items: center; gap: 10px; font-size: 16px; border-top: 1px solid var(--line); padding-top: 12px;}
+.report-page-3 .flow .lbl{font-weight: 700; color: var(--muted); margin-right: 4px;}
+.report-page-3 .flow .s{border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; background: #f9fafb;}
+.report-page-3 .flow .s.hl{border-color: var(--accent); background: #eef5fb; color: var(--accent); font-weight: 600;}
+.report-page-3 .flow .a{color: var(--muted);}</style>
+      <section class="slide">
+  <header>
+    <h1>Current Design: Manifest + View Artifacts</h1>
+    <div class="part">Proposal · 3 / 6</div>
+  </header>
+
+  <div class="body">
+    <div class="fig">
+      <div class="box-title">MANIFEST <span>(one short entry per artifact; illustrative)</span></div>
+      <div class="manifest">
+        <div class="entry sel"><code>company_dim</code><span class="use">use when the question names a company in English</span></div>
+        <div class="entry"><code>metric_yuan</code><span class="use">use when comparing money amounts stored in mixed units</span></div>
+        <div class="entry"><code>award_counts</code><span class="use">use when counting awards; blank cells mean 0</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="box-title">VIEW ARTIFACT <span><code>company_dim</code></span></div>
+      <div class="artifact">
+        <div>
+          <div class="part-label"><span class="n">1</span>View table</div>
+          <table>
+            <tr><th>name_en</th><th>name_zh</th><th>exchange</th><th>listing_board</th></tr>
+            <tr><td>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</td><td>创玮锦智电器公司</td><td>深交所</td><td>主板</td></tr>
+            <tr><td>Long He Chan Zhi Di Chan Holdings Co., Ltd.</td><td>龙河产置地产控股公司</td><td>港交所</td><td>主板</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="part-label"><span class="n">2</span>Definition (declarative SQL over the original tables)</div>
+          <pre>CREATE VIEW company_dim AS
+SELECT p.bmCode, t.name_en, p.bmCompanyName AS name_zh,
+       p.exchange, p.plate AS listing_board
+FROM company_profile p
+JOIN translation t ON t.name_zh = p.bmCompanyName;</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="store">
+        <div class="agent"><div class="bot">🤖</div><div>Agent</div></div>
+        <div class="reads"><div class="ra">reads</div><div class="ra">reads</div></div>
+        <div class="layers">
+          <div class="layer art">
+            <div class="lname">Artifact layer <span>(created by us)</span></div>
+            <div class="items"><span class="it m">manifest</span><span class="it">company_dim</span><span class="it">…</span></div>
+          </div>
+          <div class="built">↑ built by SQL over</div>
+          <div class="layer raw">
+            <div class="lname">Original dataset <span>(never modified)</span></div>
+            <div class="items"><span class="it">company_profile.csv</span><span class="it">…</span></div>
+          </div>
+        </div>
+      </div>
+      <ul class="points">
+        <li><b>Manifest:</b> catalog of artifacts and their descriptions.</li>
+        <li><b>View artifact:</b> a derived table plus the SQL that builds it.</li>
+        <li><b>Agent:</b> reads the manifest first, then opens relevant artifacts; access original dataset as usual; no context change.</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+    </div>
+    <div class="page-sheet report-page-4">
+      <style>.report-page-4{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --rq: #b45309;}
+.report-page-4 *{box-sizing: border-box;}
+.report-page-4,.report-page-4{margin: 0; background: #e5e7eb;}
+.report-page-4{font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink);}
+.report-page-4 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 30px; display: grid; grid-template-rows: auto 1fr; row-gap: 0;}
+.report-page-4 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-4 h1{margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent);}
+.report-page-4 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-4 .main{display: flex; flex-direction: column; justify-content: center; gap: 0;}
+.report-page-4 .grid{display: grid; grid-template-columns: repeat(5, 1fr); column-gap: 22px;}
+.report-page-4 .bracket{grid-column: 2 / 5; border: 2px solid var(--rq); border-bottom: none; height: 14px; margin-top: 30px;
+             position: relative;}
+.report-page-4 .bracket span{position: absolute; top: -27px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+                  font-size: 16px; font-weight: 700; color: var(--rq);}
+.report-page-4 .stages{align-items: stretch;}
+.report-page-4 .stage{position: relative; border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 6px;
+           padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 230px; background: #fff;}
+.report-page-4 .stage.rq{border-top-color: var(--rq); background: #fffbeb;}
+.report-page-4 .stage:not(:last-child)::after{content: "→"; position: absolute; right: -21px; top: 40%; font-size: 26px; font-weight: 700;
+                                   color: var(--accent);}
+.report-page-4 .no{font-size: 14px; font-weight: 700; color: var(--muted);}
+.report-page-4 .name{font-size: 24px; font-weight: 700; color: var(--accent); line-height: 1.15;}
+.report-page-4 .stage.rq .name{color: var(--rq);}
+.report-page-4 .what{font-size: 19px; line-height: 1.45;}
+.report-page-4 .out{margin-top: auto; font-size: 15px; line-height: 1.4; color: #374151; border-top: 1px dashed var(--line);
+         padding-top: 8px;}
+.report-page-4 .out b{color: var(--muted); font-weight: 700;}
+.report-page-4 .q{margin-top: auto; font-size: 17px; line-height: 1.35; font-weight: 600; color: var(--rq); border-top: 1px dashed #f3c98b; padding-top: 8px;}</style>
+      <section class="slide">
+  <header>
+    <h1>Pipeline: From Failures to Materialized Artifacts</h1>
+    <div class="part">Proposal · 4 / 6</div>
+  </header>
+
+  <div class="main">
+  <div class="grid"><div class="bracket"><span>Research questions (next page)</span></div></div>
+
+  <div class="grid stages">
+    <div class="stage">
+      <div class="no">STAGE 1</div>
+      <div class="name">Run</div>
+      <div class="what">Run the agent on training tasks.</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 2</div>
+      <div class="name">Propose</div>
+      <div class="what">Propose view artifacts for each task.</div>
+      <div class="q">How to propose?</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 3</div>
+      <div class="name">Merge</div>
+      <div class="what">Combine compatible artifacts.</div>
+      <div class="q">Which to merge?</div>
+    </div>
+    <div class="stage rq">
+      <div class="no">STAGE 4</div>
+      <div class="name">Select</div>
+      <div class="what">Pick artifacts to materialize based on utility and budget constraints.</div>
+      <div class="q">How to compute utility?</div>
+    </div>
+    <div class="stage">
+      <div class="no">STAGE 5</div>
+      <div class="name">Test</div>
+      <div class="what">Evaluate on <span style="white-space:nowrap">held-out</span> tasks.</div>
+    </div>
+  </div>
+
+  </div>
+</section>
+    </div>
+    <div class="page-sheet report-page-5">
+      <style>.report-page-5{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --rq: #b45309; --rqbg: #fffbeb;}
+.report-page-5 *{box-sizing: border-box;}
+.report-page-5,.report-page-5{margin: 0; background: #e5e7eb;}
+.report-page-5{font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink);}
+.report-page-5 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 30px; display: grid; grid-template-rows: auto 1fr; row-gap: 22px;}
+.report-page-5 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-5 h1{margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent);}
+.report-page-5 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-5 .cols{display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; min-height: 0;}
+.report-page-5 .col{border: 1px solid var(--line); border-top: 5px solid var(--rq); border-radius: 6px; padding: 16px 22px;
+         display: flex; flex-direction: column; gap: 12px;}
+.report-page-5 .tag{font-size: 14px; font-weight: 700; color: var(--muted);}
+.report-page-5 h2{margin: 0; font-size: 25px; line-height: 1.2; color: var(--rq);}
+.report-page-5 ul{margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px;}
+.report-page-5 li{font-size: 18px; line-height: 1.45;}
+.report-page-5 code{font-family: Consolas, "Courier New", monospace; font-size: 0.92em; background: #f3f4f6; padding: 0 4px;
+         border-radius: 3px;}
+.report-page-5 .ref{margin-top: auto; font-size: 15px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px;}
+.report-page-5 .fig{display: flex; align-items: center; justify-content: center; gap: 14px; background: var(--rqbg);
+         border-radius: 6px; padding: 12px 10px;}
+.report-page-5 .parts{display: flex; flex-direction: column; gap: 8px;}
+.report-page-5 .v{font-family: Consolas, "Courier New", monospace; font-size: 15px; border: 1.5px solid var(--accent);
+       background: #fff; border-radius: 4px; padding: 4px 8px; white-space: nowrap;}
+.report-page-5 .v.m{border-color: var(--rq); font-weight: 700;}
+.report-page-5 .arrow{font-size: 24px; font-weight: 700; color: var(--rq);}
+.report-page-5 .xor{font-size: 14px; font-weight: 600; color: var(--rq); text-align: center; line-height: 1.3;}
+.report-page-5 .obj{background: var(--rqbg); border-radius: 6px; padding: 10px 14px; font-size: 18px; text-align: center;
+         font-family: "Cambria Math", Cambria, "Times New Roman", serif;}
+.report-page-5 .obj i{font-style: italic;}
+.report-page-5 .cons{border-left: 5px solid var(--rq); background: #f9fafb; padding: 8px 16px;}
+.report-page-5 .ctitle{font-size: 17px; font-weight: 700; color: var(--rq); margin-bottom: 4px;}
+.report-page-5 .cons ul{gap: 2px;}
+.report-page-5 .cons li{font-size: 17px;}</style>
+      <section class="slide">
+  <header>
+    <h1>Research Questions: Merge and Select</h1>
+    <div class="part">Proposal · 5 / 6</div>
+  </header>
+
+  <div class="cols">
+    <div class="col">
+      <div class="tag">STAGE 2 & 3</div>
+      <h2>Propose & Merge: which artifacts to propose and combine?</h2>
+      <ul>
+        <li>For each task, need to find the correct view that effciently fix the task / save the reasoning steps.</li>
+        <li>Views are proposed from many tasks, so candidates <b>overlap</b>.</li>
+      </ul>
+      <ul>
+        <li>Views can be joined, which increases <b>coverage</b> but hurts <b>specificity</b>.</li>
+        <li><b>Existing work:</b> physical design tuners such as <b>AutoAdmin</b> that merge candidate views and
+          indexes to fit a storage budget.</li>
+      </ul>
+      <div class="ref">Related: AutoAdmin view merging (VLDB 2000); index merging (ICDE 1999); relaxation-based tuning (SIGMOD 2005)</div>
+    </div>
+
+    <div class="col">
+      <div class="tag">STAGE 4</div>
+      <h2>Select: which artifacts to materialize?</h2>
+      <ul>
+        <li><b>Utility </b>of an artifact: a score related to # failures it fixes, the # of steps it saves, minus correct answers it breaks.</li>
+      </ul>
+      <div class="cons">
+        <div class="ctitle">Selection constraints</div>
+        <ul>
+          <li><b>Storage:</b> total size of the materialized views.</li>
+          <li><b># Tokens:</b> the number of tokens required for agent to read an artifact.</li>
+          <li><b>Count:</b> too many artifacts can mislead the agent.</li>
+        </ul>
+      </div>
+      <ul>
+        <li><b>Solution:</b> Consider greedy / ILP.</li>
+      </ul>
+      <div class="ref">Related: view selection (HRU 1996; Gupta, ICDT 1997)</div>
+    </div>
+  </div>
+</section>
+    </div>
+    <div class="page-sheet report-page-6">
+      <style>.report-page-6{--ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --poc: #047857;}
+.report-page-6 *{box-sizing: border-box;}
+.report-page-6,.report-page-6{margin: 0; background: #e5e7eb;}
+.report-page-6{font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink);}
+.report-page-6 .slide{width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 30px; display: grid; grid-template-rows: auto 1fr; row-gap: 22px;}
+.report-page-6 header{border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end;}
+.report-page-6 h1{margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent);}
+.report-page-6 .part{font-size: 14px; color: var(--muted); white-space: nowrap;}
+.report-page-6 .main{display: flex; flex-direction: column; justify-content: center; gap: 34px; padding: 0 20px;}
+.report-page-6 h2{margin: 0 0 10px; font-size: 24px; color: var(--accent);}
+.report-page-6 h2.poc{color: var(--poc);}
+.report-page-6 ul{margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 12px;}
+.report-page-6 li{font-size: 21px; line-height: 1.5;}
+.report-page-6 li b{color: var(--accent);}
+.report-page-6 .sec.poc li b{color: var(--poc);}</style>
+      <section class="slide">
+  <header>
+    <h1>Benchmarks: Text2SQL First, Then Data Agents</h1>
+    <div class="part">Proposal · 6 / 6</div>
+  </header>
+
+  <div class="main">
+    <div class="sec">
+      <h2>Candidate benchmarks</h2>
+      <ul>
+        <li><b>Text2SQL:</b> BIRD and Beaver (much harder).</li>
+        <li><b>Data agent:</b> DataClawBench.</li>
+      </ul>
+    </div>
+    <div class="sec poc">
+      <h2 class="poc">PoC: start with BIRD and Beaver</h2>
+      <ul>
+        <li>Views can be proposed directly from the gold SQL of
+          training questions.</li>
+        <li>Quickly verify whether the views help the agent before building the full pipeline.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motivating Example: A Hidden Link Between Two Sources</title>
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --bad: #b91c1c; --good: #047857; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e5e7eb; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: var(--ink); }
+  .slide {
+    width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 28px; display: grid; grid-template-rows: auto auto 1fr; row-gap: 18px;
+  }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent); }
+  .part { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .question { background: #f3f4f6; border-left: 5px solid var(--ink); padding: 11px 20px;
+              font-size: 19px; line-height: 1.45; display: flex; justify-content: space-between; gap: 24px; }
+  .question .q b { font-weight: 700; }
+  .question .gold { white-space: nowrap; font-weight: 700; align-self: center; }
+  .src { font-size: 14px; color: var(--muted); font-weight: 400; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; min-height: 0; }
+  .col { border-top: 4px solid var(--muted); padding-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .col.ours { border-top-color: var(--accent); }
+  .col h2 { margin: 0; font-size: 22px; color: var(--muted); }
+  .col.ours h2 { color: var(--accent); }
+
+  .label { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+  .label code { font-weight: 400; }
+  pre { margin: 0; background: #f9fafb; border: 1px solid var(--line); padding: 6px 10px;
+        font-family: Consolas, "Courier New", monospace; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; font-weight: 600; white-space: nowrap; }
+  .zh { white-space: nowrap; }
+  .gloss { color: var(--muted); font-size: 12.5px; }
+  .hl { background: #fef3c7; }
+  .key { color: #c2410c; font-weight: 700; }
+  .link { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--bad); font-weight: 600;
+          margin: -2px 0 -2px 18px; }
+  .link .dash { width: 2px; height: 26px; border-left: 2px dashed var(--bad); }
+  .link.ok { color: var(--good); }
+  .link.ok .dash { border-left: 2px solid var(--good); }
+  .term { color: #7c3aed; font-weight: 700; }
+  th.term, th.renamed { color: #7c3aed; background: #ede9fe; }
+  .note { font-size: 14.5px; font-weight: 600; margin-top: 4px; }
+  .note.bad { color: #7c3aed; }
+  .note.good { color: var(--good); }
+
+  .trace { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 18px; row-gap: 10px; }
+  .step { border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; background: #f9fafb;
+          font-family: Consolas, "Courier New", monospace; font-size: 16.5px; }
+  .arrow { color: var(--muted); }
+  .verdict { font-weight: 700; }
+  .verdict.bad { color: var(--bad); }
+  .verdict.good { color: var(--good); }
+
+  .why { font-size: 17px; line-height: 1.45; margin-top: auto; padding: 8px 12px; border-left: 3px solid var(--muted); background: #f9fafb; }
+  .col.ours .why { border-left-color: var(--accent); background: #eef5fb; }
+  .why b { color: var(--ink); }
+  .col.ours .why b { color: var(--accent); }
+</style>
+</head>
+<body>
+<section class="slide">
+  <header>
+    <h1>Motivating Example</h1>
+    <div class="part">Proposal · 2 / 6</div>
+  </header>
+
+  <div class="question">
+    <div class="q"><b>Q:</b> In 2022, are the <span class="term">listing boards</span> of <i>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</i>
+      and <i>Long He Chan Zhi Di Chan Holdings Co., Ltd.</i> the same? <span class="src">(DataClaw task_116)</span></div>
+    <div class="gold">Gold: Yes</div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>Without artifact</h2>
+      <div>
+        <div class="label">Source 1: translation file <code>bilingual_translation_english_chinese.json</code></div>
+        <pre>"<span class="key">创玮锦智电器公司</span>": "Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.",
+"<span class="key">龙河产置地产控股公司</span>": "Long He Chan Zhi Di Chan Holdings Co., Ltd.",</pre>
+      </div>
+      <div class="link"><span class="dash"></span>✗ Linked only by the Chinese name; the agent never found this link</div>
+      <div>
+        <div class="label">Source 2: company records <code>company_profile.csv</code> (Chinese names only)</div>
+        <table>
+          <tr><th>bmCompanyName</th><th>exchange</th><th class="term">plate</th></tr>
+          <tr><td class="zh key">创玮锦智电器公司</td><td>深交所 <span class="gloss">SZSE</span></td><td>主板 <span class="gloss">Main Board</span></td></tr>
+          <tr><td class="zh key">龙河产置地产控股公司</td><td>港交所 <span class="gloss">HKEX</span></td><td>主板 <span class="gloss">Main Board</span></td></tr>
+        </table>
+        <div class="note bad">✗ The question says "listing board", but the column is named <code>plate</code></div>
+      </div>
+      <div>
+        <div class="label">Agent trace: reads Source 1, never opens Source 2</div>
+        <div class="trace">
+          <span class="step">ls database</span><span class="arrow">→</span>
+          <span class="step">look for the company names</span><span class="arrow">→</span>
+          <span class="step">read translation file, never find plate info</span><span class="arrow">→</span>
+          <span class="verdict bad">"No relevant data found" ✗</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col ours">
+      <h2>With artifact</h2>
+      <div>
+        <div class="label">View <code>company_dim</code>: Source 1 and Source 2 joined in one table</div>
+        <table>
+          <tr><th>name_en</th><th>name_zh</th><th>exchange</th><th class="renamed">listing_board</th></tr>
+          <tr class="hl"><td>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</td><td class="zh">创玮锦智电器公司</td><td class="zh">深交所 <span class="gloss">SZSE</span></td><td class="zh">主板 <span class="gloss">Main Board</span></td></tr>
+          <tr class="hl"><td>Long He Chan Zhi Di Chan Holdings Co., Ltd.</td><td class="zh">龙河产置地产控股公司</td><td class="zh">港交所 <span class="gloss">HKEX</span></td><td class="zh">主板 <span class="gloss">Main Board</span></td></tr>
+        </table>
+        <div class="note good">✓ Column renamed to match the question: <code>plate</code> → <code>listing_board</code></div>
+      </div>
+      <div>
+        <div class="label">Agent trace (expected)</div>
+        <div class="trace">
+          <span class="step">ls database</span><span class="arrow">→</span>
+          <span class="step">look for company names</span><span class="arrow">→</span>
+          <span class="step">find company name with listing_board presented</span><span class="arrow">→</span>
+          <span class="verdict good">"Yes" ✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

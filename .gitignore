@@ -1,0 +1,10 @@
+.env
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# 230 MB, above GitHub's 100 MB file limit; regenerate with db_agent_view/run_gold.py
+db_agent_view/data/gold_results.jsonl
+
+# third-party papers, kept locally only
+papers/

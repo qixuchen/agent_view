@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Manifest and View Artifacts</title>
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e5e7eb; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: var(--ink); }
+  .slide {
+    width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 26px; display: grid; grid-template-rows: auto 1fr auto; row-gap: 18px;
+  }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent); }
+  .part { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .body { display: grid; grid-template-columns: 640px 1fr; column-gap: 36px; min-height: 0; }
+
+  /* figure */
+  .fig { display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+  .box-title { font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 4px; }
+  .box-title span { font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .manifest { border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; background: #eef5fb; }
+  .entry { display: grid; grid-template-columns: 160px 1fr; font-size: 16px; line-height: 1.65; padding: 2px 4px; }
+  .entry code { font-weight: 700; }
+  .entry.sel { background: #fff; border: 1px solid var(--accent); border-radius: 4px; }
+  .entry .use { color: #374151; }
+  .connector { height: 18px; margin-bottom: 4px; margin-left: 70px; border-left: 2px solid var(--accent); position: relative; }
+  .connector::after { content: ""; position: absolute; left: -7px; bottom: -2px; border: 6px solid transparent;
+                      border-top: 8px solid var(--accent); }
+  .artifact { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; display: flex; flex-direction: column; gap: 14px; }
+  .part-label { font-size: 16px; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+  .part-label .n { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+                   color: #fff; text-align: center; font-size: 12px; line-height: 18px; margin-right: 6px; }
+  pre { margin: 0; background: #f9fafb; border: 1px solid var(--line); padding: 5px 9px;
+        font-family: Consolas, "Courier New", monospace; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; }
+  pre .k { color: var(--accent); font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 5px; text-align: left; white-space: nowrap; }
+  th { background: #f3f4f6; font-weight: 600; }
+  .gloss { color: var(--muted); font-size: 12px; }
+
+  /* text */
+  .right { display: flex; flex-direction: column; gap: 34px; justify-content: center; min-height: 0; }
+  .store { display: grid; grid-template-columns: 84px 64px 1fr; align-items: center; }
+  .agent { text-align: center; font-size: 17px; font-weight: 700; color: var(--accent); }
+  .bot { font-size: 48px; line-height: 1.1; }
+  .reads { display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 30px 4px 30px 0; }
+  .ra { position: relative; font-size: 14px; color: var(--accent); font-weight: 600; text-align: center;
+        border-bottom: 2px solid var(--accent); padding-bottom: 2px; margin-right: 6px; }
+  .ra::after { content: ""; position: absolute; right: -9px; bottom: -7px; border: 6px solid transparent;
+               border-left: 9px solid var(--accent); }
+  .layers { display: flex; flex-direction: column; }
+  .layer { border-radius: 6px; padding: 10px 12px; }
+  .layer.art { border: 2px solid var(--accent); background: #eef5fb; }
+  .layer.raw { border: 2px solid #9ca3af; background: #f3f4f6; }
+  .lname { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .layer.art .lname { color: var(--accent); }
+  .layer.raw .lname { color: #4b5563; }
+  .lname span { font-weight: 400; color: var(--muted); }
+  .items { display: flex; flex-wrap: wrap; gap: 5px; }
+  .it { font-family: Consolas, "Courier New", monospace; font-size: 14.5px; background: #fff; border: 1px solid var(--line);
+        border-radius: 3px; padding: 2px 7px; }
+  .it.m { border-color: var(--accent); font-weight: 700; }
+  .built { font-size: 14px; color: var(--muted); text-align: center; padding: 3px 0; }
+  .points { margin: 0; padding: 0 0 0 22px; display: flex; flex-direction: column; gap: 18px; }
+  .points li { font-size: 20px; line-height: 1.5; }
+  .points li b { color: var(--accent); }
+
+  /* flow */
+  .flow { display: flex; align-items: center; gap: 10px; font-size: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .flow .lbl { font-weight: 700; color: var(--muted); margin-right: 4px; }
+  .flow .s { border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; background: #f9fafb; }
+  .flow .s.hl { border-color: var(--accent); background: #eef5fb; color: var(--accent); font-weight: 600; }
+  .flow .a { color: var(--muted); }
+</style>
+</head>
+<body>
+<section class="slide">
+  <header>
+    <h1>Current Design: Manifest + View Artifacts</h1>
+    <div class="part">Proposal · 3 / 6</div>
+  </header>
+
+  <div class="body">
+    <div class="fig">
+      <div class="box-title">MANIFEST <span>(one short entry per artifact; illustrative)</span></div>
+      <div class="manifest">
+        <div class="entry sel"><code>company_dim</code><span class="use">use when the question names a company in English</span></div>
+        <div class="entry"><code>metric_yuan</code><span class="use">use when comparing money amounts stored in mixed units</span></div>
+        <div class="entry"><code>award_counts</code><span class="use">use when counting awards; blank cells mean 0</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="box-title">VIEW ARTIFACT <span><code>company_dim</code></span></div>
+      <div class="artifact">
+        <div>
+          <div class="part-label"><span class="n">1</span>View table</div>
+          <table>
+            <tr><th>name_en</th><th>name_zh</th><th>exchange</th><th>listing_board</th></tr>
+            <tr><td>Chuang Wei Jin Zhi Electrical Appliances Co., Ltd.</td><td>创玮锦智电器公司</td><td>深交所</td><td>主板</td></tr>
+            <tr><td>Long He Chan Zhi Di Chan Holdings Co., Ltd.</td><td>龙河产置地产控股公司</td><td>港交所</td><td>主板</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="part-label"><span class="n">2</span>Definition (declarative SQL over the original tables)</div>
+          <pre>CREATE VIEW company_dim AS
+SELECT p.bmCode, t.name_en, p.bmCompanyName AS name_zh,
+       p.exchange, p.plate AS listing_board
+FROM company_profile p
+JOIN translation t ON t.name_zh = p.bmCompanyName;</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="store">
+        <div class="agent"><div class="bot">🤖</div><div>Agent</div></div>
+        <div class="reads"><div class="ra">reads</div><div class="ra">reads</div></div>
+        <div class="layers">
+          <div class="layer art">
+            <div class="lname">Artifact layer <span>(created by us)</span></div>
+            <div class="items"><span class="it m">manifest</span><span class="it">company_dim</span><span class="it">…</span></div>
+          </div>
+          <div class="built">↑ built by SQL over</div>
+          <div class="layer raw">
+            <div class="lname">Original dataset <span>(never modified)</span></div>
+            <div class="items"><span class="it">company_profile.csv</span><span class="it">…</span></div>
+          </div>
+        </div>
+      </div>
+      <ul class="points">
+        <li><b>Manifest:</b> catalog of artifacts and their descriptions.</li>
+        <li><b>View artifact:</b> a derived table plus the SQL that builds it.</li>
+        <li><b>Agent:</b> reads the manifest first, then opens relevant artifacts; access original dataset as usual; no context change.</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+</body>
+</html>

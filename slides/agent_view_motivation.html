@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motivation: Change the Data, Not the Context</title>
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e5e7eb; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .slide {
+    width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 60px 40px; display: grid; grid-template-rows: auto auto 1fr; row-gap: 40px;
+  }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 34px; line-height: 1.1; color: var(--accent); }
+  .part { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .problem { background: #f3f4f6; border-left: 5px solid var(--ink); padding: 16px 24px;
+             font-size: 24px; line-height: 1.5; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; align-content: start; }
+  .col { border-top: 4px solid var(--muted); padding-top: 14px; }
+  .col.ours { border-top-color: var(--accent); background: linear-gradient(#eef5fb, #fff 70%); }
+  .col h2 { margin: 0 0 22px; font-size: 27px; line-height: 1.3; color: var(--muted); padding: 0 4px; }
+  .col.ours h2 { color: var(--accent); }
+  .col h2 small { display: block; font-size: 16px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .col ul { margin: 0; padding: 0 8px 0 28px; display: flex; flex-direction: column; gap: 26px; }
+  .col li { font-size: 22px; line-height: 1.5; }
+  .col li b { color: var(--ink); }
+  .col.ours li b { color: var(--accent); }
+  .note { display: block; color: var(--muted); font-size: 18px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<section class="slide">
+  <header>
+    <h1>Motivation: Change the Data, Not the Context</h1>
+    <div class="part">Proposal · 1 / 6</div>
+  </header>
+
+  <div class="problem">
+    Data agents often fail not because they cannot write SQL, but because they <b>misunderstand the data</b>.
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>Existing: learn knowledge from failures<small>TK-Boost, MIRA</small></h2>
+      <ul>
+        <li>They mine misconceptions from failed tasks and store them as <b>knowledge</b> in text.</li>
+        <li>For every new task, the right piece must be <b>retrieved</b> and applied again.</li>
+        <li>The stored dataset stays unchanged; the fix is injected into the agent's <b>context</b>.</li>
+      </ul>
+    </div>
+
+    <div class="col ours">
+      <h2>New: generate data artifacts<small> </small></h2>
+      <ul>
+        <li>We turn knowledge into a <b>data artifact</b>: a derived view over the original tables.</li>
+        <li>No retrieval needed. The agent's context stays <b>unchanged</b>; what changes is the <b>data</b> it can query.</li>
+        <li>Agents benefit from these views that make the complex task/query simpler.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</body>
+</html>

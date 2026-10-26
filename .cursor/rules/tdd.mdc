@@ -1,0 +1,62 @@
+---
+description: Require test-driven development for all project changes
+alwaysApply: true
+---
+
+# Test-driven development
+
+Use TDD for every behavior-changing implementation.
+
+1. Define the expected behavior and its boundary cases before implementation.
+2. Write or update a focused automated test that fails for the missing or incorrect behavior.
+3. Run the test and confirm the failure is meaningful.
+4. Implement the smallest change that makes the test pass.
+5. Run the relevant test suite, then refactor only while tests remain green.
+
+Do not add production behavior without corresponding automated coverage unless
+testing is genuinely infeasible. In that case, explain why and perform the
+strongest practical verification instead.
+
+Keep tests deterministic, independent, and focused on observable behavior.
+For bug fixes, add a regression test that fails before the fix. For
+configuration, documentation, or purely mechanical changes where no behavior
+changes, run the relevant validation or explain why no test applies.
+
+Report the tests run and their results when handing off implementation work.
+---
+description: Strict TDD workflow for all feature and bug-fix work
+alwaysApply: true
+---
+
+# Strict TDD Rules
+
+For every behavior change, use Red → Green → Refactor.
+
+## Red
+- First inspect relevant existing tests, implementation, and test commands.
+- Write or modify tests only.
+- Do not modify production code.
+- Run the smallest relevant test command.
+- Confirm the new test fails for the expected behavioral reason.
+- If the test fails because of setup, import, syntax, or environment issues,
+  fix the test setup first; do not call it a valid Red state.
+
+## Green
+- Only after a valid Red state, write the smallest production-code change
+  needed to make the failing test pass.
+- Do not weaken assertions, alter expected outputs, or change fixtures merely
+  to make tests pass.
+- Do not add untested features or perform unrelated refactors.
+- Run the relevant tests after implementation.
+
+## Refactor
+- Only refactor when all relevant tests pass.
+- Preserve externally observable behavior.
+- Run relevant tests again after refactoring.
+
+## General
+- Work on one small observable behavior per loop.
+- State the exact test command run and its result.
+- Do not edit unrelated files.
+- Prefer behavior-focused tests over tests coupled to private implementation.
+- Before significant edits, inspect git diff; after edits, report changed files.

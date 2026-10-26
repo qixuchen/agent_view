@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Benchmarks: Text2SQL First, Then Data Agents</title>
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --accent: #0f5e9c; --line: #d1d5db; --poc: #047857; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e5e7eb; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .slide {
+    width: 1280px; height: 720px; margin: 0 auto; background: #fff; overflow: hidden;
+    padding: 30px 52px 30px; display: grid; grid-template-rows: auto 1fr; row-gap: 22px;
+  }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px;
+           display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.1; color: var(--accent); }
+  .part { font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+  .main { display: flex; flex-direction: column; justify-content: center; gap: 34px; padding: 0 20px; }
+  h2 { margin: 0 0 10px; font-size: 24px; color: var(--accent); }
+  h2.poc { color: var(--poc); }
+  ul { margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 12px; }
+  li { font-size: 21px; line-height: 1.5; }
+  li b { color: var(--accent); }
+  .sec.poc li b { color: var(--poc); }
+</style>
+</head>
+<body>
+<section class="slide">
+  <header>
+    <h1>Benchmarks: Text2SQL First, Then Data Agents</h1>
+    <div class="part">Proposal · 6 / 6</div>
+  </header>
+
+  <div class="main">
+    <div class="sec">
+      <h2>Candidate benchmarks</h2>
+      <ul>
+        <li><b>Text2SQL:</b> BIRD and Beaver (much harder).</li>
+        <li><b>Data agent:</b> DataClawBench.</li>
+      </ul>
+    </div>
+    <div class="sec poc">
+      <h2 class="poc">PoC: start with BIRD and Beaver</h2>
+      <ul>
+        <li>Views can be proposed directly from the gold SQL of
+          training questions.</li>
+        <li>Quickly verify whether the views help the agent before building the full pipeline.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</body>
+</html>
