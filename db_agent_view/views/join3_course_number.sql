@@ -1,0 +1,76 @@
+-- Agent view for the join3_course_number experiment (docs/beaver_dw_top10.md, section 5).
+-- Apply as root to db_agent_view; remove with drop_join3_course_number.sql.
+
+CREATE OR REPLACE SQL SECURITY DEFINER VIEW av_library_offering_course AS
+SELECT
+    lso.LIBRARY_SUBJECT_OFFERED_KEY,
+    lso.TERM_CODE,
+    lso.MASTER_COURSE_NUMBER,
+    lso.MASTER_COURSE_NUMBER_SORT,
+    lso.MASTER_COURSE_NUMBER_DESC,
+    lso.MASTER_SUBJECT_ID,
+    lso.MASTER_SUBJECT_ID_SORT,
+    lso.COURSE_NUMBER,
+    lso.COURSE_NUMBER_SORT,
+    lso.COURSE_NUMBER_DESC,
+    lso.SUBJECT_ID,
+    lso.SUBJECT_ID_SORT,
+    lso.SUBJECT_TITLE,
+    lso.OFFER_DEPT_CODE,
+    lso.OFFER_DEPT_NAME,
+    lso.OFFER_SCHOOL_NAME,
+    lso.RESPONSIBLE_FACULTY_NAME,
+    lso.RESPONSIBLE_FACULTY_MIT_ID,
+    lso.NUM_ENROLLED_STUDENTS,
+    lso.WAREHOUSE_LOAD_DATE AS LSO_WAREHOUSE_LOAD_DATE,
+    ssc.SUBJECT_CODE,
+    ssc.SUBJECT_CODE_DESC,
+    ssc.DEPARTMENT_CODE,
+    ssc.SCHOOL_CODE,
+    ssc.WAREHOUSE_LOAD_DATE AS SSC_WAREHOUSE_LOAD_DATE,
+    scd.SIS_COURSE_DESCRIPTION_KEY,
+    scd.COURSE,
+    scd.COURSE_DESCRIPTION,
+    scd.COURSE_DESCRIPTION_LONG,
+    scd.DEPARTMENT,
+    scd.DEPARTMENT_NAME,
+    scd.DEPT_NAME_IN_COMMENCEMENT_BK,
+    scd.SCHOOL_NAME,
+    scd.SCHOOL_NAME_IN_COMMENCEMENT_BK,
+    scd.FROM_TERM,
+    scd.FROM_TERM_DESCRIPTION,
+    scd.THRU_TERM,
+    scd.THRU_TERM_DESCRIPTION,
+    scd.COURSE_OPTION,
+    scd.COURSE_LEVEL,
+    scd.CIP_PROGRAM_CODE,
+    scd.IS_DEGREE_GRANTING,
+    scd.DEFAULT_ULTIMATE_DEGREE,
+    scd.GRADAUTE_LEVEL,
+    scd.GRADUATE_LEVEL,
+    scd.LAST_ACTIVITY_DATE,
+    scd.WAREHOUSE_LOAD_DATE AS SCD_WAREHOUSE_LOAD_DATE
+FROM LIBRARY_SUBJECT_OFFERED lso
+JOIN SIS_SUBJECT_CODE ssc ON lso.COURSE_NUMBER = ssc.COURSE_NUMBER
+JOIN SIS_COURSE_DESCRIPTION scd ON scd.COURSE = ssc.COURSE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS av_catalog (
+    object_name VARCHAR(64) NOT NULL,
+    column_name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    PRIMARY KEY (object_name, column_name)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+DELETE FROM av_catalog WHERE object_name = 'av_library_offering_course';
+
+INSERT INTO av_catalog (object_name, column_name, description) VALUES
+('av_library_offering_course', '*',
+ 'Subject offerings (LIBRARY_SUBJECT_OFFERED) joined with their course number (SIS_SUBJECT_CODE) and course description (SIS_COURSE_DESCRIPTION): LIBRARY_SUBJECT_OFFERED.COURSE_NUMBER = SIS_SUBJECT_CODE.COURSE_NUMBER AND SIS_COURSE_DESCRIPTION.COURSE = SIS_SUBJECT_CODE.COURSE_NUMBER (inner joins). One row per offering and matching course-description row; SIS_COURSE_DESCRIPTION can hold several rows for one COURSE, so an offering can appear more than once.'),
+('av_library_offering_course', 'LIBRARY_SUBJECT_OFFERED_KEY..NUM_ENROLLED_STUDENTS',
+ 'Columns from LIBRARY_SUBJECT_OFFERED, same names. COURSE_NUMBER equals SIS_SUBJECT_CODE.COURSE_NUMBER and SIS_COURSE_DESCRIPTION.COURSE.'),
+('av_library_offering_course', 'SUBJECT_CODE, SUBJECT_CODE_DESC, DEPARTMENT_CODE, SCHOOL_CODE',
+ 'Columns from SIS_SUBJECT_CODE, same names.'),
+('av_library_offering_course', 'SIS_COURSE_DESCRIPTION_KEY..GRADUATE_LEVEL, LAST_ACTIVITY_DATE',
+ 'Columns from SIS_COURSE_DESCRIPTION, same names. DEPARTMENT_NAME and SCHOOL_NAME also equal SIS_SUBJECT_CODE.DEPARTMENT_NAME and SIS_SUBJECT_CODE.SCHOOL_NAME on every row.'),
+('av_library_offering_course', 'LSO_WAREHOUSE_LOAD_DATE, SSC_WAREHOUSE_LOAD_DATE, SCD_WAREHOUSE_LOAD_DATE',
+ 'WAREHOUSE_LOAD_DATE of LIBRARY_SUBJECT_OFFERED, SIS_SUBJECT_CODE and SIS_COURSE_DESCRIPTION respectively.');

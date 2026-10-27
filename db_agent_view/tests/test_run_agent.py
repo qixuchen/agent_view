@@ -152,12 +152,21 @@ def test_prompt_includes_explicit_task_context_only_when_provided():
         "seed": 0,
     }
 
-    assert "Task-specific annotation guidance" not in _prompt(task)
-    prompt = _prompt(task, task_context="## Task-specific annotation guidance\n- trusted")
+    plain = _prompt(task)
+    assert "Task-specific annotation guidance" not in plain
+    assert "context.md" not in plain
+    prompt = _prompt(task, task_context="## Task-specific annotation guidance\n- trusted\n")
 
-    assert "Read /tmp/c0-task/context.md" in prompt
+    assert "## Task-specific annotation guidance\n- trusted\n" in prompt
     assert "Treat it as guidance" in prompt
-    assert "Task-specific annotation guidance" not in prompt
+    assert "/tmp/c0-task/context.md" in prompt
+
+
+def test_prompt_does_not_forbid_the_guidance_it_supplies():
+    task = {"task_id": "smoke_001", "question": "Count rows.", "database": "dw", "seed": 0}
+
+    assert "annotations" not in _prompt(task)
+    assert "annotations" not in _prompt(task, task_context="- trusted\n")
 
 
 def test_redact_trace_text_removes_configured_and_environment_secrets():
@@ -394,7 +403,9 @@ def test_run_one_task_uses_only_manifest_and_writes_valid_agent_artifacts(
         "model_context_window": 1_000_000,
         "model_max_tokens": 32_768,
         "seed": 0,
+        "task_context": False,
         "task_id": "smoke_001",
+        "thinking": "medium",
     }
     assert metadata["session_trajectory"] == "exported"
     flattened_commands = "\n".join(" ".join(command) for command in docker.commands)
@@ -411,7 +422,7 @@ def test_run_one_task_uses_only_manifest_and_writes_valid_agent_artifacts(
     assert "openclaw config set agents.defaults.timeoutSeconds 600 --strict-json" in flattened_commands
     assert "openclaw gateway run --bind loopback --port 3333" in flattened_commands
     assert "openclaw models set custom-api-openlux-ai/glm-5.2" in flattened_commands
-    assert "openclaw agent --agent main --session-id chat --timeout 600 --json" in flattened_commands
+    assert "openclaw agent --agent main --session-id chat --thinking medium --timeout 600 --json" in flattened_commands
     agent_index = next(
         index
         for index, command in enumerate(docker.commands)

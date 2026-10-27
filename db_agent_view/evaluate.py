@@ -3,9 +3,10 @@
 
 Strict EX is the semantic-catalog C0 rule: numbers must match digit for digit and ordered
 tasks must match row for row. Relaxed EX accepts numbers within float noise of a gold number
-(relative 1e-9, absolute 1e-12, never between two integers) and, for ordered tasks, only
-requires the sequence of ORDER BY key values to match, so rows with tied sort keys may appear
-in any order. Text keys are tied the way MySQL ties them: case- and accent-insensitively.
+(relative 1e-9, absolute 1e-12, never between two integers). It checks row order only when the
+gold SQL sorts its output and the question itself asks for an order; it then only requires the
+sequence of ORDER BY key values to match, so rows with tied sort keys may appear in any order.
+Text keys are tied the way MySQL ties them: case- and accent-insensitively.
 """
 
 from __future__ import annotations
@@ -40,6 +41,26 @@ ABSOLUTE_TOLERANCE = Decimal("1e-12")
 INTEGER_LITERAL = re.compile(r"\s*[+-]?\d+\s*")
 COARSE_DIGITS = 10
 MAX_COLUMN_MAPPINGS = 1000
+ORDER_REQUEST = re.compile(
+    r"\b(?:ascending|descending|alphabetical|chronological|increasing|decreasing)\s+order\b"
+    r"|\b(?:sort|sorted|sorting|order|ordered|ordering|rank|ranked)\s+(?:the\s+)?(?:\w+\s+)?by\b"
+    r"|\bin\s+order\s+of\b"
+    r"|\b(?:sorted|ordered|ranked)\s+from\s+(?:the\s+)?\w+\s+to\b",
+    re.IGNORECASE,
+)
+# Beaver questions describe window functions with the same words ("rows ordered by ...").
+WINDOW_CONTEXT = re.compile(
+    r"\b(?:preceding|following|partition|window|within each|rank of|dense rank|row number|running|cumulative)\b",
+    re.IGNORECASE,
+)
+
+
+def question_requests_order(question: str) -> bool:
+    """Whether some sentence of the question asks for the output rows in a particular order."""
+    return any(
+        ORDER_REQUEST.search(sentence) and not WINDOW_CONTEXT.search(sentence)
+        for sentence in re.split(r"(?<=[.!?;])\s+", question)
+    )
 
 
 def outer_order_keys(sql: str, columns: Sequence[str]) -> list[int] | None:
@@ -217,10 +238,13 @@ def evaluate_run(*, data_dir: Path, run_root: Path) -> tuple[list[dict[str, Any]
     for entry in manifest:
         task_id, seed = entry["task_id"], entry["seed"]
         gold = gold_results[task_id]
+        requests_order = question_requests_order(entry["question"])
+        check_order = gold["ordered"] and requests_order
         record: dict[str, Any] = {
             "task_id": task_id,
             "seed": seed,
             "ordered": gold["ordered"],
+            "question_requests_order": requests_order,
             "failure_reason": None,
             "column_alignment": None,
             "order_check": None,
@@ -245,9 +269,9 @@ def evaluate_run(*, data_dir: Path, run_root: Path) -> tuple[list[dict[str, Any]
             matches, order_check = relaxed_compare(
                 final["result"],
                 gold["result"],
-                ordered=gold["ordered"],
+                ordered=check_order,
                 order_keys=outer_order_keys(gold_sql[task_id], gold["result"]["columns"])
-                if gold["ordered"]
+                if check_order
                 else None,
             )
         except ContractError:

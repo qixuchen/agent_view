@@ -1,0 +1,105 @@
+{
+  "experiment": "join3_course_number",
+  "join_path": {
+    "tables": [
+      "LIBRARY_SUBJECT_OFFERED",
+      "SIS_COURSE_DESCRIPTION",
+      "SIS_SUBJECT_CODE"
+    ],
+    "join_keys": [
+      [
+        "LIBRARY_SUBJECT_OFFERED.COURSE_NUMBER",
+        "SIS_SUBJECT_CODE.COURSE_NUMBER"
+      ],
+      [
+        "SIS_COURSE_DESCRIPTION.COURSE",
+        "SIS_SUBJECT_CODE.COURSE_NUMBER"
+      ]
+    ]
+  },
+  "selection_rule": "Tasks whose annotated table set and annotated equality join keys both equal the join path exactly (order- and orientation-insensitive).",
+  "source_tasks_gold": "/home/qchenax/agent_view/db_agent_view/data/tasks_gold.jsonl",
+  "source_tasks_gold_sha256": "b68f72c6f42a6496158d3390ab853b3f46b6b047b8c33953e3a3b5e948c237ff",
+  "join_path_task_ids": [
+    "dw_124",
+    "dw_249",
+    "dw_323",
+    "dw_356",
+    "dw_396",
+    "dw_426",
+    "dw_503",
+    "dw_1303",
+    "dw_2593",
+    "dw_2946",
+    "dw_2959",
+    "dw_5353",
+    "dw_5464",
+    "dw_5466",
+    "dw_5488",
+    "dw_5586",
+    "dw_5615"
+  ],
+  "excluded_tasks": {
+    "dw_356": "Asks for one row per department; gold groups by department and subject, returning 2376 per-subject rows whose variance is always 0.",
+    "dw_1303": "Contains the same per-subject subquery as dw_356; gold returns 822 rows with variance 0.",
+    "dw_2593": "Gold takes the variance of each department's single variance value inside WITH ROLLUP, so all 15 department rows have variance 0."
+  },
+  "task_count": 14,
+  "task_ids": [
+    "dw_124",
+    "dw_249",
+    "dw_323",
+    "dw_396",
+    "dw_426",
+    "dw_503",
+    "dw_2946",
+    "dw_2959",
+    "dw_5353",
+    "dw_5464",
+    "dw_5466",
+    "dw_5488",
+    "dw_5586",
+    "dw_5615"
+  ],
+  "tasks_with_domain_knowledge": [
+    "dw_124",
+    "dw_249",
+    "dw_323",
+    "dw_396",
+    "dw_426",
+    "dw_503",
+    "dw_5353",
+    "dw_5464",
+    "dw_5466",
+    "dw_5488",
+    "dw_5586",
+    "dw_5615"
+  ],
+  "files": {
+    "manifest.jsonl": {
+      "visibility": "agent-safe (task_id, question, database, seed)",
+      "sha256": "611751603f1367f93f6481183c0b3a4ba413ccb7699a5719487ac533eeaf0482"
+    },
+    "domain_knowledge_contexts.jsonl": {
+      "visibility": "agent-visible when injected (domain_knowledge annotation only)",
+      "sha256": "475cc5785e32057e2a4c4f522e1e7a7a4ebc5a3e41e74cad4e620bffb83c1536"
+    },
+    "view_contexts.jsonl": {
+      "visibility": "agent-visible in the view arm (arm note, then the same domain knowledge)",
+      "sha256": "29a32ec40f8cb88418110f1a087056b466ce4ec0335dc9670b324010758433f1"
+    },
+    "join_text_contexts.jsonl": {
+      "visibility": "agent-visible in the join_text arm (arm note, then the same domain knowledge)",
+      "sha256": "bfd9730567210634767916d3f9bf7a7bd183082c4d9e774890a93566876cd754"
+    },
+    "join_sql_contexts.jsonl": {
+      "visibility": "agent-visible in the join_sql arm (arm note, then the same domain knowledge)",
+      "sha256": "7a21411e43d7646e845ddd0583d8ebe51752cafcc45ce6380d4f0389d6e97849"
+    }
+  },
+  "arm_notes": {
+    "view": "# Agent views\nThis database also has pre-joined views whose names start with `av_`. The table `av_catalog` documents each view: its source tables, join conditions, and where every column comes from. Read `av_catalog` before choosing tables.\nFor any question about offered subjects (enrollments, offering departments, terms), prefer the view `av_library_offering_course` over joining base tables yourself.\n",
+    "join_text": "# Join knowledge\nFor any question about offered subjects (enrollments, offering departments, terms), use the table LIBRARY_SUBJECT_OFFERED for the offerings, and join it to SIS_SUBJECT_CODE and SIS_COURSE_DESCRIPTION instead of using other offering tables:\n- LIBRARY_SUBJECT_OFFERED.COURSE_NUMBER = SIS_SUBJECT_CODE.COURSE_NUMBER\n- SIS_COURSE_DESCRIPTION.COURSE = SIS_SUBJECT_CODE.COURSE_NUMBER\n(both inner joins).\n\nGrain of the joined rows: one row per offering and matching course-description row. SIS_COURSE_DESCRIPTION can hold several rows for one COURSE, so an offering can appear more than once.\n\nColumn sources: offering columns (term, subject, offering department and school, enrolled students) come from LIBRARY_SUBJECT_OFFERED. SUBJECT_CODE, SUBJECT_CODE_DESC, DEPARTMENT_CODE and SCHOOL_CODE come from SIS_SUBJECT_CODE. Course-level columns (department, school, degree-granting flag, course level, CIP code) come from SIS_COURSE_DESCRIPTION. On joined rows, SIS_COURSE_DESCRIPTION.DEPARTMENT_NAME and SCHOOL_NAME equal SIS_SUBJECT_CODE.DEPARTMENT_NAME and SCHOOL_NAME.\n",
+    "join_sql": "# Join knowledge\nFor any question about offered subjects (enrollments, offering departments, terms), build on the query below (for example as a WITH clause named library_offering_course) instead of joining base tables yourself.\n\n```sql\nWITH library_offering_course AS (\nSELECT\n    lso.LIBRARY_SUBJECT_OFFERED_KEY,\n    lso.TERM_CODE,\n    lso.MASTER_COURSE_NUMBER,\n    lso.MASTER_COURSE_NUMBER_SORT,\n    lso.MASTER_COURSE_NUMBER_DESC,\n    lso.MASTER_SUBJECT_ID,\n    lso.MASTER_SUBJECT_ID_SORT,\n    lso.COURSE_NUMBER,\n    lso.COURSE_NUMBER_SORT,\n    lso.COURSE_NUMBER_DESC,\n    lso.SUBJECT_ID,\n    lso.SUBJECT_ID_SORT,\n    lso.SUBJECT_TITLE,\n    lso.OFFER_DEPT_CODE,\n    lso.OFFER_DEPT_NAME,\n    lso.OFFER_SCHOOL_NAME,\n    lso.RESPONSIBLE_FACULTY_NAME,\n    lso.RESPONSIBLE_FACULTY_MIT_ID,\n    lso.NUM_ENROLLED_STUDENTS,\n    lso.WAREHOUSE_LOAD_DATE AS LSO_WAREHOUSE_LOAD_DATE,\n    ssc.SUBJECT_CODE,\n    ssc.SUBJECT_CODE_DESC,\n    ssc.DEPARTMENT_CODE,\n    ssc.SCHOOL_CODE,\n    ssc.WAREHOUSE_LOAD_DATE AS SSC_WAREHOUSE_LOAD_DATE,\n    scd.SIS_COURSE_DESCRIPTION_KEY,\n    scd.COURSE,\n    scd.COURSE_DESCRIPTION,\n    scd.COURSE_DESCRIPTION_LONG,\n    scd.DEPARTMENT,\n    scd.DEPARTMENT_NAME,\n    scd.DEPT_NAME_IN_COMMENCEMENT_BK,\n    scd.SCHOOL_NAME,\n    scd.SCHOOL_NAME_IN_COMMENCEMENT_BK,\n    scd.FROM_TERM,\n    scd.FROM_TERM_DESCRIPTION,\n    scd.THRU_TERM,\n    scd.THRU_TERM_DESCRIPTION,\n    scd.COURSE_OPTION,\n    scd.COURSE_LEVEL,\n    scd.CIP_PROGRAM_CODE,\n    scd.IS_DEGREE_GRANTING,\n    scd.DEFAULT_ULTIMATE_DEGREE,\n    scd.GRADAUTE_LEVEL,\n    scd.GRADUATE_LEVEL,\n    scd.LAST_ACTIVITY_DATE,\n    scd.WAREHOUSE_LOAD_DATE AS SCD_WAREHOUSE_LOAD_DATE\nFROM LIBRARY_SUBJECT_OFFERED lso\nJOIN SIS_SUBJECT_CODE ssc ON lso.COURSE_NUMBER = ssc.COURSE_NUMBER\nJOIN SIS_COURSE_DESCRIPTION scd ON scd.COURSE = ssc.COURSE_NUMBER\n)\n```\n\nNotes on library_offering_course:\n- Whole query: Subject offerings (LIBRARY_SUBJECT_OFFERED) joined with their course number (SIS_SUBJECT_CODE) and course description (SIS_COURSE_DESCRIPTION): LIBRARY_SUBJECT_OFFERED.COURSE_NUMBER = SIS_SUBJECT_CODE.COURSE_NUMBER AND SIS_COURSE_DESCRIPTION.COURSE = SIS_SUBJECT_CODE.COURSE_NUMBER (inner joins). One row per offering and matching course-description row; SIS_COURSE_DESCRIPTION can hold several rows for one COURSE, so an offering can appear more than once.\n- LIBRARY_SUBJECT_OFFERED_KEY..NUM_ENROLLED_STUDENTS: Columns from LIBRARY_SUBJECT_OFFERED, same names. COURSE_NUMBER equals SIS_SUBJECT_CODE.COURSE_NUMBER and SIS_COURSE_DESCRIPTION.COURSE.\n- SUBJECT_CODE, SUBJECT_CODE_DESC, DEPARTMENT_CODE, SCHOOL_CODE: Columns from SIS_SUBJECT_CODE, same names.\n- SIS_COURSE_DESCRIPTION_KEY..GRADUATE_LEVEL, LAST_ACTIVITY_DATE: Columns from SIS_COURSE_DESCRIPTION, same names. DEPARTMENT_NAME and SCHOOL_NAME also equal SIS_SUBJECT_CODE.DEPARTMENT_NAME and SIS_SUBJECT_CODE.SCHOOL_NAME on every row.\n- LSO_WAREHOUSE_LOAD_DATE, SSC_WAREHOUSE_LOAD_DATE, SCD_WAREHOUSE_LOAD_DATE: WAREHOUSE_LOAD_DATE of LIBRARY_SUBJECT_OFFERED, SIS_SUBJECT_CODE and SIS_COURSE_DESCRIPTION respectively.\n"
+  }
+}

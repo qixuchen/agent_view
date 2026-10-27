@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 
+import pytest
+
+import evaluate
 from evaluate import evaluate_run, outer_order_keys, relaxed_compare
 
 
@@ -167,3 +170,78 @@ def test_evaluate_run_reports_strict_and_relaxed_accuracy(tmp_path: Path) -> Non
     assert aggregate["relaxed_ex_sum"] == 2
     assert (run_root / "evaluation" / "evaluator_results.jsonl").exists()
     assert (run_root / "evaluation" / "aggregate_metrics.json").exists()
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "List each department and its total units in descending order. Do not return any rounded answers.",
+        "Show the subjects in alphabetical order.",
+        "For each school, give the number of subjects. Sort the table by academic year and term code.",
+        "Compute the ratio for each department, ordering the results by this ratio in descending order.",
+        "List the departments (excluding political science), ranked by the range of total units.",
+        "Order the results by enrollment, highest first.",
+        "Give the totals, sorted by department name.",
+        "List the results in order of decreasing variance. Do not return any rounded answers.",
+        "Give the standard deviation, ordered from highest to lowest standard deviation.",
+    ],
+)
+def test_question_requests_order_detects_requested_row_order(question: str) -> None:
+    assert evaluate.question_requests_order(question)
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "List the columns in the following order: department name, average enrollment.",
+        "Give the department name and the number of enrolled students, in that order. Do not return any rounded answers.",
+        "Give the average over the current and 2 preceding rows ordered by the department's budget code.",
+        "Show the subject code, school name, and the dense rank of each course considering the units.",
+        "Within each school name group ordered by subject code, count the subjects.",
+        "From the top 10 departments with the highest total number of enrolled students, show each name.",
+        "Join the tables in order to count the subjects per department.",
+        "For each department, what is the average number of enrolled students?",
+    ],
+)
+def test_question_requests_order_ignores_column_order_window_frames_and_top_n(question: str) -> None:
+    assert not evaluate.question_requests_order(question)
+
+
+def _evaluate_one_ordered_task(tmp_path: Path, question: str):
+    data = tmp_path / "data"
+    data.mkdir()
+    _write_jsonl(data / "manifest.jsonl", [{"task_id": "dw_1", "question": question, "database": "db_agent_view", "seed": 0}])
+    _write_jsonl(data / "tasks_gold.jsonl", [{"id": "dw_1", "sql": "SELECT d, n FROM t ORDER BY n DESC"}])
+    _write_jsonl(
+        data / "gold_results.jsonl",
+        [{"task_id": "dw_1", "ordered": True, "result": table(["d", "n"], [["A", "2"], ["B", "1"]])}],
+    )
+    task_dir = tmp_path / "run" / "tasks" / "dw_1" / "0"
+    task_dir.mkdir(parents=True)
+    (task_dir / "final.json").write_text(
+        json.dumps({
+            "status": "answered",
+            "result": table(["d", "n"], [["B", "1"], ["A", "2"]]),
+            "answer": "",
+            "final_sql": "SELECT 1",
+        }),
+        encoding="utf-8",
+    )
+    records, _ = evaluate_run(data_dir=data, run_root=tmp_path / "run")
+    return records[0]
+
+
+def test_relaxed_ex_ignores_gold_order_the_question_never_asked_for(tmp_path: Path) -> None:
+    record = _evaluate_one_ordered_task(tmp_path, "For each department, what is the total?")
+
+    assert (record["strict_ex"], record["relaxed_ex"]) == (0, 1)
+    assert record["question_requests_order"] is False
+    assert record["order_check"] == "unordered"
+
+
+def test_relaxed_ex_checks_order_the_question_asks_for(tmp_path: Path) -> None:
+    record = _evaluate_one_ordered_task(tmp_path, "List each department's total in descending order.")
+
+    assert (record["strict_ex"], record["relaxed_ex"]) == (0, 0)
+    assert record["question_requests_order"] is True
+    assert record["order_check"] == "order_keys"

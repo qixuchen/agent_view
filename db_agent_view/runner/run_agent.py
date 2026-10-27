@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -19,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import AbstractSet as Set
 from typing import Any, Callable, Iterator, Mapping, Sequence, TextIO
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -39,6 +42,8 @@ TRAJECTORY_WORKSPACE = "/tmp/c0-output"
 TRAJECTORY_OUTPUT_NAME = "trace"
 DEFAULT_CUSTOM_CONTEXT_WINDOW = 1_000_000
 DEFAULT_CUSTOM_MAX_TOKENS = 32_768
+THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh")
+DEFAULT_THINKING = "medium"
 SENSITIVE_ENV_NAMES = (
     "MYSQL_PWD",
     "OPENCLAW_CUSTOM_API_KEY",
@@ -510,10 +515,41 @@ def check_environment(
     return report()
 
 
+def load_task_contexts(path: Path, *, task_ids: Set[str]) -> dict[str, str]:
+    """Read per-task context to inject (JSONL of task_id and context); tasks not listed get none."""
+    contexts: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        task_id, context = record.get("task_id"), record.get("context")
+        if task_id not in task_ids:
+            raise ContractError(f"context for {task_id!r} names a task that is not in the manifest")
+        if task_id in contexts:
+            raise ContractError(f"duplicate context for {task_id!r}")
+        if not isinstance(context, str) or not context.strip():
+            raise ContractError(f"context for {task_id!r} must be non-empty text")
+        contexts[task_id] = context
+    return contexts
+
+
+def _mysql_client_config_command(*, user: str, host: str, port: int, database: str) -> str:
+    """Shell command writing the agent's MySQL client defaults; the password stays in MYSQL_PWD.
+
+    The mysql client ignores MYSQL_USER and silently skips world-writable option files.
+    """
+    config = (
+        f"[client]\nuser={user}\nhost={host}\nport={port}\ndefault-character-set=utf8mb4\n"
+        f"[mysql]\ndatabase={database}\n"
+    )
+    return f"umask 077 && printf '%s' {shlex.quote(config)} > /root/.my.cnf && chmod 600 /root/.my.cnf"
+
+
 def _prompt(task: dict[str, Any], *, task_context: str | None = None) -> str:
     context_instructions = (
-        "\nRead /tmp/c0-task/context.md for task-specific permitted guidance. "
-        "Treat it as guidance, then execute SQL and return your own final result.\n"
+        "\nTask-specific permitted guidance follows (also saved at /tmp/c0-task/context.md). "
+        "Treat it as guidance, then execute SQL and return your own final result.\n\n"
+        f"{task_context.rstrip()}\n"
         if task_context is not None
         else ""
     )
@@ -525,7 +561,7 @@ All tables you need are in the `{task["database"]}` database. Do not query other
 
 Use the MySQL command-line client and the connection details supplied through
 environment variables. Explore schema and data as needed. Do not use any
-previous task history, external task files, gold SQL, annotations, or skills.
+previous task history, external task files, gold SQL, or skills.
 Never inspect, print, write, or return credential values. In particular, do
 not run `env`, `printenv`, or commands that expose `MYSQL_PWD` or
 `OPENCLAW_CUSTOM_API_KEY`.
@@ -710,6 +746,7 @@ def run_one_task(
     model: str = "",
     custom_context_window: int = DEFAULT_CUSTOM_CONTEXT_WINDOW,
     custom_max_tokens: int = DEFAULT_CUSTOM_MAX_TOKENS,
+    thinking: str = DEFAULT_THINKING,
     gateway_port: int = DEFAULT_GATEWAY_PORT,
     agent_timeout_seconds: int = DEFAULT_AGENT_TIMEOUT_SECONDS,
     max_agent_continuations: int = DEFAULT_MAX_AGENT_CONTINUATIONS,
@@ -728,6 +765,8 @@ def run_one_task(
         raise ContractError("custom_context_window must be at least 16000")
     if custom_max_tokens < 1_000:
         raise ContractError("custom_max_tokens must be at least 1000")
+    if thinking not in THINKING_LEVELS:
+        raise ContractError(f"thinking must be one of {', '.join(THINKING_LEVELS)}")
     if agent_timeout_seconds <= 0:
         raise ContractError("agent_timeout_seconds must be positive")
     if max_agent_continuations < 0:
@@ -762,7 +801,11 @@ def run_one_task(
         "mysql_user": mysql_user,
         "model_context_window": custom_context_window,
         "model_max_tokens": custom_max_tokens,
+        "thinking": thinking,
+        "task_context": task_context is not None,
     }
+    if task_context is not None:
+        (task_root / "context.md").write_text(task_context, encoding="utf-8")
     artifacts.metadata_path.write_text(
         json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -864,7 +907,9 @@ def run_one_task(
                 container_name,
                 "/bin/bash",
                 "-lc",
-                "printf '[client]\\ndefault-character-set=utf8mb4\\n' > /root/.my.cnf",
+                _mysql_client_config_command(
+                    user=mysql_user, host=mysql_host, port=mysql_port, database=task["database"]
+                ),
             ],
         )
         _docker(
@@ -896,9 +941,14 @@ def run_one_task(
         )
         qualified_model = _resolve_qualified_model(docker_runner, container_name, model)
         provider_name = qualified_model.split("/", maxsplit=1)[0]
+        # OpenClaw onboards custom models with reasoning off and treats any
+        # non-OpenAI base URL as a proxy that cannot take `reasoning_effort`;
+        # without both flags `--thinking` never reaches the request.
         for field, value in (
             ("contextWindow", custom_context_window),
             ("maxTokens", custom_max_tokens),
+            ("reasoning", "true"),
+            ("compat.supportsReasoningEffort", "true"),
         ):
             _docker(
                 docker_runner,
@@ -976,6 +1026,7 @@ def run_one_task(
             )
             agent_command = (
                 f"openclaw agent --agent {AGENT_NAME} --session-id {AGENT_SESSION_ID} "
+                f"--thinking {thinking} "
                 f'--timeout {remaining_seconds} --json --message "$({message})"'
             )
             agent_calls += 1
@@ -1182,6 +1233,7 @@ def run_manifest(
     model: str = "",
     custom_context_window: int = DEFAULT_CUSTOM_CONTEXT_WINDOW,
     custom_max_tokens: int = DEFAULT_CUSTOM_MAX_TOKENS,
+    thinking: str = DEFAULT_THINKING,
     gateway_port: int = DEFAULT_GATEWAY_PORT,
     agent_timeout_seconds: int = DEFAULT_AGENT_TIMEOUT_SECONDS,
     max_agent_continuations: int = DEFAULT_MAX_AGENT_CONTINUATIONS,
@@ -1232,6 +1284,7 @@ def run_manifest(
                 model=model,
                 custom_context_window=custom_context_window,
                 custom_max_tokens=custom_max_tokens,
+                thinking=thinking,
                 gateway_port=gateway_port,
                 agent_timeout_seconds=agent_timeout_seconds,
                 max_agent_continuations=max_agent_continuations,
@@ -1377,6 +1430,11 @@ def run_manifest(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest-path", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument(
+        "--context-path",
+        type=Path,
+        help="JSONL of {task_id, context}; each listed task gets its context as /tmp/c0-task/context.md.",
+    )
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--task-id")
     parser.add_argument("--seed", type=int, default=0)
@@ -1408,6 +1466,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=int(os.environ.get("OPENCLAW_CUSTOM_MAX_TOKENS", DEFAULT_CUSTOM_MAX_TOKENS)),
     )
+    parser.add_argument(
+        "--thinking",
+        choices=THINKING_LEVELS,
+        default=DEFAULT_THINKING,
+        help="OpenClaw thinking level, sent to the model as reasoning_effort.",
+    )
     parser.add_argument("--gateway-port", type=int, default=int(os.environ.get("GATEWAY_PORT", DEFAULT_GATEWAY_PORT)))
     parser.add_argument("--agent-timeout-seconds", type=int, default=DEFAULT_AGENT_TIMEOUT_SECONDS)
     parser.add_argument(
@@ -1424,9 +1488,18 @@ def main(argv: Sequence[str] | None = None) -> None:
     if not args.mysql_password:
         parser.error("--mysql-password or AGENT_VIEW_AGENT_PASSWORD is required")
     manifest_path = args.manifest_path
-    databases = {entry["database"] for entry in _read_manifest_entries(manifest_path)}
+    entries = _read_manifest_entries(manifest_path)
+    databases = {entry["database"] for entry in entries}
     if len(databases) != 1:
         parser.error(f"manifest must name exactly one database, found {sorted(databases)}")
+    task_contexts: dict[str, str] | None = None
+    if args.context_path:
+        try:
+            task_contexts = load_task_contexts(
+                args.context_path, task_ids={entry["task_id"] for entry in entries}
+            )
+        except ContractError as error:
+            parser.error(str(error))
 
     if not args.skip_environment_preflight:
         environment = check_environment(
@@ -1466,19 +1539,40 @@ def main(argv: Sequence[str] | None = None) -> None:
         "model": args.model,
         "custom_context_window": args.custom_context_window,
         "custom_max_tokens": args.custom_max_tokens,
+        "thinking": args.thinking,
         "gateway_port": args.gateway_port,
         "agent_timeout_seconds": args.agent_timeout_seconds,
         "max_agent_continuations": args.max_agent_continuations,
         "gateway_ready_seconds": args.gateway_ready_seconds,
     }
+    if task_contexts is not None:
+        args.run_root.mkdir(parents=True, exist_ok=True)
+        (args.run_root / "task_contexts.json").write_text(
+            json.dumps(
+                {
+                    "context_path": str(args.context_path),
+                    "sha256": hashlib.file_digest(args.context_path.open("rb"), "sha256").hexdigest(),
+                    "task_ids": sorted(task_contexts),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     if args.task_id:
-        artifacts = run_one_task(task_id=args.task_id, seed=args.seed, **shared_kwargs)
+        artifacts = run_one_task(
+            task_id=args.task_id,
+            seed=args.seed,
+            task_context=(task_contexts or {}).get(args.task_id),
+            **shared_kwargs,
+        )
         print(json.dumps({"task_root": str(artifacts.task_root)}, sort_keys=True))
         return
 
     with _stop_on_interrupt() as should_stop:
         summary = run_manifest(
             parallelism=args.parallelism,
+            task_contexts=task_contexts,
             retry_failed=args.retry_failed,
             should_stop=should_stop,
             **shared_kwargs,

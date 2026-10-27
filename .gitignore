@@ -8,3 +8,6 @@ db_agent_view/data/gold_results.jsonl
 
 # third-party papers, kept locally only
 papers/
+
+# agent run outputs and logs
+runs/
