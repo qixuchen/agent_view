@@ -1185,7 +1185,7 @@ R < db_agent_view/views/drop_dept_semantics.sql   # 跑完后清理
 
 seed 目录沿用第二轮的 `seed1` 到 `seed3`。对比对象是第二轮 A、B、C、D 四组（`runs/dept_views/*_dk_medium`）。
 
-### 5.13 第五轮方案：先拆子任务再选 view，加全局的量表 `av_measure_route`（待实现）
+### 5.13 第五轮方案：先拆子任务再选 view，加全局的量表 `av_measure_route`（已运行，结果见本节末）
 
 **起因：第四轮的结果。** 以后只看 relaxed EX。第四轮（5.12）三个 seed 的 relaxed 是 8、6、4，平均 6.0/20，是五组里
 最高的；第二轮四组的平均依次是 A 组 4.00、B 组 4.67、C 组 3.67、D 组 2.33。三轮共 60 次作答，42 次判错。逐个读了
@@ -1202,12 +1202,20 @@ SQL 和结果，并把能拿到的 37 条 `final_sql` 在库里只读地重新�
 
 这一轮只解决第二类。"degree granting"条件用错（第三类里的 5 次）稍后单独处理。
 
+**题单改为 14 题。** 第一类的 6 道题（dw_827、dw_1140、dw_1628、dw_1658、dw_2417、dw_5526）照说明做也必然判错，
+从这一轮起不再运行。排除写在 `build_join_experiment.py` 的 `EXPERIMENTS["dept_views"]["excluded_tasks"]` 里，每题
+附有理由，做法和第一轮排除 3 道题相同；重新生成后 `experiments/dept_views/` 的清单和各组上下文都是 14 行。评测数据
+是 `runs/dept_views/eval_data14`，从 `eval_data20` 中按新清单筛出，清单的每一行和原来逐字相同，gold 结果没有重跑。
+这 6 道题在五组共 15 次运行里从没对过，所以按已有的逐题评测只取 14 题重算，五组的 relaxed 平均不变：A 组 4.00、
+B 组 4.67、C 组 3.67、D 组 2.33、第四轮 6.00，满分从 20 变为 14。
+
 **只用一个 view 是怎么发生的（读运行轨迹得出）。** 统计 agent 实际执行过的查询（不能在整份轨迹里搜表名：提示和
 目录的返回结果里本来就含有这些表名，会虚高）。需要两个 view 的 6 道题是 dw_1043、dw_2519、dw_2563，以及三道
 变异系数题 dw_1140、dw_2417、dw_827，后者的变异系数部分 gold 用 `SUBJECT_OFFERED_SUMMARY`。18 次运行中 1 次没有
 产出 SQL；其余 17 次里，15 次 agent 读完目录就只读了 `av_dept_tip_offering_course` 的三张说明表，另一个 view 的说明
-没读过；另外 2 次读了两个 view 的说明，最终仍只用三表 view。对照的 dw_2040 两部分写得很分明（"课程的 CIP 代码"
-和"开课的学分"），对的两次都读了多个 view 的说明并组合使用。
+没读过；另外 2 次读了两个 view 的说明，最终仍只用三表 view。三道变异系数题已从题单中排除（见上），留下的
+dw_1043、dw_2519、dw_2563 共 9 次运行中，1 次没有产出 SQL，6 次只读了三表 view 的说明，2 次读了两个 view 的说明。
+对照的 dw_2040 两部分写得很分明（"课程的 CIP 代码"和"开课的学分"），对的两次都读了多个 view 的说明并组合使用。
 
 原因是 agent 在读目录这一步按整道题选 view：题目里有 graduate-level 就选三表 view，之后不再检查各个子问题。三表
 view 里也确实有 2021FA 的全部开课，所以即使读了第二个 view 的说明，agent 也不觉得需要组合。现有设计挡不住这一点：
@@ -1262,24 +1270,23 @@ plan 可以从轨迹里取出来分析。
 | `built_from` | 只用于 `measure_combo`，填组成它的 `measure_id`，逗号分隔 |
 | `not_for` | 说法相近、但要在别处算的量，以及去哪里算 |
 
-**这一轮要写的量（按 20 道题的 gold 归纳）。**
+**这一轮要写的量（按 14 道题的 gold 归纳）。**
 
 | measure_id（暂定） | view | 量 | 用到的题 |
 |---|---|---|---|
-| `level_subject_enrollment_stats` | 三表 view | 研究生或本科层次科目的选课人数的极差、方差、标准差、平均、最大和对应科目 | dw_1043、dw_2519、dw_2563、dw_5215、dw_1140、dw_2417、dw_827、dw_1628、dw_1658 |
-| `level_subject_count` | 三表 view | 某院系研究生层次科目的个数 | dw_2417 |
-| `subject_with_course_material` | 三表 view | 有课程资料的开课清单 | dw_5526 |
+| `level_subject_enrollment_stats` | 三表 view | 研究生或本科层次科目的选课人数的极差、方差、标准差、平均、最大和对应科目 | dw_1043、dw_2519、dw_2563、dw_5215 |
 | `min_enrollment_with_course_count` | 三表 view | 某学院各院系开课的最小选课人数，和授予学位的课程数一起算 | dw_5433 |
 | `term_enrollment_max_avg` | `av_dept_offering_summary` | 某学期某院系任意科目（不限层次）的最大、平均选课人数和最大的科目 | dw_1043、dw_2519、dw_2563 |
-| `enrollment_cv` | `av_dept_offering_summary` | 选课人数（只算选课人数大于 0 的开课）的变异系数 | dw_1140、dw_2417、dw_827 |
 | `total_units_stats` | `av_dept_offering_summary` | 开课学分的平均、极差、方差、标准差、几何平均 | dw_2040、dw_3742、dw_5144、dw_5161 |
 | `dept_total_enrollment` | `av_dept_offering_summary` | 院系开课的总选课人数 | dw_5452 |
-| `course_count_cip` | `av_dept_course` | 院系或学院的课程数，CIP 代码的最小、最大、平均、方差 | dw_306、dw_4462、dw_1628、dw_1658、dw_2040 |
+| `course_count_cip` | `av_dept_course` | 院系或学院的课程数，CIP 代码的最小、最大、平均、方差 | dw_306、dw_4462、dw_2040 |
 | `course_list_budget` | `av_dept_course` | 列出某院系的课程及院系预算代码，按预算分类 | dw_334、dw_5716、dw_4462 |
 
+- 排除的 6 道题原本还对应三个量：研究生层次科目的个数、有课程资料的开课清单、选课人数的变异系数。它们在 14 道
+  题里没有用到，这一轮不写，原因和下面不写 `measure_combo` 行相同。
 - `not_for` 的例子：`level_subject_enrollment_stats` 写"不限研究生或本科层次的某学期统计，见
-  `term_enrollment_max_avg`；变异系数见 `enrollment_cv`"。agent 即使只看了这一行，也会被引到另一个 view。
-- 20 道题里没有需要 `measure_combo` 的量，这一轮不写这种行，只实现字段和测试，避免写出没有题目依据的内容。
+  `term_enrollment_max_avg`"。agent 即使只看了这一行，也会被引到另一个 view。
+- 14 道题里没有需要 `measure_combo` 的量，这一轮不写这种行，只实现字段和测试，避免写出没有题目依据的内容。
 - 和 5.12 的说明一样，这张表是看着 gold 写的。例如两张开课表其实都能回答"2021FA 的最大选课人数"，gold 用哪一张
   是由题目模板决定的；dw_5433 问"任意科目的最小选课人数"，gold 却用三表 view，因为它和课程数在一起算。所以
   表里的分流规则属于已知答案条件下的上限。
@@ -1364,7 +1371,7 @@ av_measure_route (one row per measure)
    - 删除脚本会删掉 `av_measure_route`；
    - 提示里有读量表的完整查询、写 `plan.md` 的要求和"表不完整"的说明，量表每个字段都有解释，仍不含 view 名和
      列名。
-2. 在 `views/dept_semantics/catalog.sql` 里建表并写入上面 10 行，`views/drop_dept_semantics.sql` 加上这张表。
+2. 在 `views/dept_semantics/catalog.sql` 里建表并写入上面 7 行，`views/drop_dept_semantics.sql` 加上这张表。
 3. 在 `build_join_experiment.py` 的 `EXPERIMENTS["dept_views"]["arm_notes"]` 里新加一组（暂定名 `view_plan`），
    重新生成 `experiments/dept_views/`，确认原有文件逐字节不变。
 4. 在临时库里执行建表语句检查行数，`python3 -m pytest tests -q` 全部通过。
@@ -1372,9 +1379,202 @@ av_measure_route (one row per measure)
 
 **怎么评估。**
 
-- 主要指标是 relaxed EX 的三 seed 平均，和第四轮的 6.0 对比；单独看上面 6 道需要两个 view 的题。
-- 从轨迹统计：写了 `plan.md` 的比例；6 道题里 plan 选了两个 view、并且读了两个 view 说明的次数（第四轮是
-  17 次里 2 次读了两个 view 的说明、0 次组合）；`measure_id` 为 `none` 的子任务占多少；最终 SQL 用的 view 和 plan
-  是否一致。
+- 主要指标是 14 道题上 relaxed EX 的三 seed 平均，和第四轮的 6.00/14 对比；单独看需要两个 view 的 dw_1043、
+  dw_2519、dw_2563。
+- 从轨迹统计：写了 `plan.md` 的比例；这 3 道题里 plan 选了两个 view、并且读了两个 view 说明的次数（第四轮是
+  8 次有 SQL 的运行里 2 次读了两个 view 的说明、0 次组合）；`measure_id` 为 `none` 的子任务占多少；最终 SQL 用的
+  view 和 plan 是否一致。
 - 篇幅和代价：提示变长，每题多读一张表、多写一个文件，比较每题的轮数和耗时。
-- 不变的部分作为对照：gold 有问题的 6 道题仍会判错，relaxed 的上限仍是 14/20。
+- 评测命令里的数据目录改用 `runs/dept_views/eval_data14`。
+
+**实现情况。**
+
+- 量表的 7 行写在 `views/dept_semantics/catalog.sql`，删除脚本已加上这张表。在临时库里执行该脚本，三张表依次是
+  3、3、7 行，`view` 作列名在 MySQL 里可用。
+- 写 `how` 前核对过一处：三表 view 的说明要求选课人数在 `tip_offering` 粒度（每条开课一行）上聚合，gold 却在
+  重复行上算方差。两者结果相同，因为同一院系的每条开课都重复相同次数（该院系研究生层次项目的行数），整体按
+  同一倍数复制不改变极差、总体方差、平均和最大值。
+- `view_plan` 的提示由 `build_join_experiment.py` 里的 `view_plan_note` 从 `view_semantics` 的提示生成：换掉开头几段，
+  在 `av_catalog` 的字段说明后插入量表的字段说明，其余逐字相同（有测试检查）。重新生成后原有 6 个文件的 sha256
+  不变，新增 `view_plan_contexts.jsonl`，14 行。
+- 量表放在 `catalog.sql` 里，以后如果重跑 `view_semantics` 组，库里也会有这张表，只是提示里不提它。
+- 新增 13 个测试，`python3 -m pytest tests -q` 共 208 个全部通过。
+
+**先只跑"只用一个 view"的 3 道题。** `runs/dept_views/eval_data_q2` 是从 `eval_data14` 筛出的 dw_1043、dw_2519、
+dw_2563，里面同时放了这 3 题的 `view_plan_contexts.jsonl`（和完整文件中的对应行逐字相同）。
+
+```bash
+cd ~/agent_view
+R() { (set -a; . ~/semantic-catalog/.env; set +a
+       docker exec -i -e MYSQL_PWD=$BEAVER_C0_MYSQL_ROOT_PASSWORD beaver-c0-mysql \
+         mysql -uroot --default-character-set=utf8mb4 db_agent_view); }
+for f in av_dept_course av_dept_offering_summary av_dept_tip_offering_course catalog; do
+  R < db_agent_view/views/dept_semantics/$f.sql
+done
+
+set -a; . ~/agent_view/.env; set +a
+Q2=runs/dept_views/eval_data_q2
+for seed in 1 2 3; do
+  python3 db_agent_view/runner/run_agent.py \
+    --manifest-path $Q2/manifest.jsonl \
+    --context-path $Q2/view_plan_contexts.jsonl \
+    --model gpt-5.1 --thinking medium \
+    --run-root runs/dept_views/view_plan_q2_dk_medium/seed$seed --parallelism 3
+  python3 db_agent_view/evaluate.py \
+    --run-root runs/dept_views/view_plan_q2_dk_medium/seed$seed --data-dir $Q2
+done
+```
+
+第四轮这 3 道题 9 次运行的 relaxed 全错：8 次结果不符，dw_2519 seed3 没有产出有效的 `final.json`。
+
+**3 题试跑的结果（`runs/dept_views/view_plan_q2_dk_medium`）。** relaxed 每个 seed 都是 1/3，合计 3/9（第四轮 0/9）。
+对的是 seed1 的 dw_2563、seed2 和 seed3 的 dw_1043。9 次中 seed1 的 dw_1043 第一次调用模型就返回 `terminated`，
+没有任何工具调用；其余 8 次全部写了 `plan.md`、都读了两个 view 的说明和 `av_view_join`，7 次的最终 SQL 组合了两个
+view（dw_2519 seed3 的 plan 选了两个 view，SQL 只用了三表 view）。
+
+**14 题全量的结果（`runs/dept_views/view_plan_dk_medium`）。** 命令同上，只是清单和上下文换成
+`experiments/dept_views/` 下的完整文件，评测用 `eval_data14`。三个 seed 的 relaxed 是 9、8、10，平均 9.00/14；第四轮在
+同样 14 题上是 8、6、4，平均 6.00。这一轮最低的一次不低于第四轮最好的一次，三次之间相差 2 题（第四轮相差 4 题）。
+seed 只是重复运行的编号，不传给模型（读 `run_agent.py` 得出），所以两轮的同号 seed 之间没有对应关系，下面按每题
+三次里对了几次比较。
+
+| 题 | 第五轮 | 第四轮 |
+|---|---|---|
+| dw_1043 | 2 | 0 |
+| dw_2519 | 1 | 0 |
+| dw_2563 | 1 | 0 |
+| dw_306 | 3 | 1 |
+| dw_3742、dw_5144、dw_5433 | 各 3 | 各 2 |
+| dw_2040 | 2 | 2 |
+| dw_5161、dw_5215、dw_5452 | 各 3 | 各 3 |
+| dw_334、dw_4462、dw_5716 | 0 | 0 |
+
+没有一道题比第四轮差。单题三次里多对一次在随机波动之内，比较可靠的是总分整体抬高，以及需要两个 view 的三道题
+从 0/9 变为 4/9。
+
+行为和代价（读轨迹实测，只算这 14 题）：
+
+- 42 次运行中 1 次（seed2 的 dw_2040）接口报错、没有工具调用，其余 41 次全部写了 `plan.md`。
+- 需要两个 view 的四道题（dw_1043、dw_2519、dw_2563、dw_2040）共 12 次运行，11 次的最终 SQL 组合了两个 view；第四轮
+  是 2 次。
+- 每题耗时的中位数 293 秒（第四轮 320 秒），工具调用次数的中位数 10 次（第四轮 8 次），代价没有明显增加。
+
+剩下的 15 次错误，逐题比对了结果和 SQL：
+
+| 原因 | 次数 | 涉及的运行 |
+|---|---|---|
+| "degree granting"多加了项目标志 `SCD_IS_DEGREE_GRANTING` | 5 | dw_334 seed1、seed3，dw_5716 seed2、seed3，dw_4462 seed3 |
+| 按 `av_view_join` 的建议用了 LEFT JOIN，多出 2021FA 没有开课的院系（多为 16 行对 8 行） | 4 | dw_1043 seed2，dw_2563 seed1、seed2，dw_2519 seed3 |
+| 运行故障 | 4 | dw_4462 seed1、seed2 超时；dw_2040 seed2 接口报错；dw_334 seed2 没写出有效的 `final.json` |
+| dw_2519 题目有歧义，列出了每门研究生科目（42 行，gold 只留选课最多的一门） | 1 | dw_2519 seed1 |
+| 窗口函数写错（`MIN(...) OVER ()`），还加了 `LIMIT 10` | 1 | dw_5716 seed1 |
+
+dw_2519 seed3 除了 LEFT JOIN，还把研究生科目的统计限定在 2021FA。
+
+**这一轮的结论和遗留问题。**
+
+- 先拆子任务再选 view、配合量表，在 14 题上有效：平均从 6.00 升到 9.00，没有题目变差，代价没有明显增加。量表是
+  看着 gold 写的，结果属于已知答案条件下的上限。
+- LEFT JOIN 的 4 次来自 `av_view_join` 的 `notes` 里"从题目列出院系的那一部分做 LEFT JOIN"的建议，gold 用内连接。
+  改成默认内连接也是照着 gold 改，暂不处理。
+- "degree granting"的 5 次不改。在全部 945 题中，同时连了院系表和课程表的题里，题目说"degree-granting courses"时
+  gold 有 15 道用课程表的标志、4 道用院系标志（dw_5716、dw_334 属于后者，与 dw_3528、dw_4672 同一模板）；说
+  "departments that grant degrees"时也有 6 道用课程表的标志。题目说法和该用哪一列之间没有稳定的规则，按任何一种
+  通用规则写说明都会让另一部分题判错，所以记为题目说法和 gold 不一致。
+- 运行故障的 4 次可以单独重跑，得到更干净的分数。
+
+### 5.14 对照方案：把同样的知识做成记忆交给 agent（全文记忆与精选记忆，待实现）
+
+**要回答的问题。** 第五轮（`view_plan`）的知识以 view 和说明表的形式放在库里，agent 按需查询。要说明这种形式比
+"记忆"好，对照组必须拿到同样的知识，只是交付形式不同，否则会被质疑"view 组知识多、对照组知识少"。第二轮的 B、C
+组做不到这一点：它们是对着旧版 view 设计的，B 组提示 1,428 字符，C 组 7,760 字符；而 view 组能读到的说明表合计
+53,007 字符（目录 3,180，连接表 1,320，量表 5,890，三个 view 的说明表 42,617），B、C 组没有其中的粒度、语义和
+量表。所以新设两组记忆方案，替代 B、C 作为第五轮的对照。
+
+**为什么要两组。** 只给全文，会被质疑"放进了大量无关信息误导 agent"；只给精选，会被质疑"用 gold 替记忆挑选了
+信息"。两组把 view 组夹在中间：
+
+- 全文记忆：全部知识，每题相同。代表没有挑选能力的静态记忆，例如把知识全部写进系统提示。
+- 精选记忆：每题只给 gold 用到的那几个 view 的细节，加上每题都给的摘要和量表。它借 gold 替记忆做了挑选，是记忆
+  方案的上限，"无关信息"的质疑对它不成立。
+
+依据是 view 组实际读到的量（读第五轮 seed1 的轨迹实测）：agent 每题都读目录和量表（约 9,000 字符），再读选中的
+view 的三张说明表。只用一个 view 的题读了 20,530 到 29,072 字符，用两个 view 的题读了 34,325 到 40,532 字符，14 题
+平均 27,312 字符，约为全部的一半；agent 选的 view 和 gold 用到的 view 在 14 题上全部一致。精选记忆的内容和长度
+因此和 view 组每题实际读到的基本对等。
+
+**结果怎么解读。**
+
+- view 组不差于精选记忆：即使记忆借 gold 挑得完全对口，view 组也不输，而且不需要任何人替它挑选。这是最强的结论。
+- view 组在两组之间：收益主要来自"只看相关信息"。view 组靠目录和量表自己挑选，不需要 gold；现实中的记忆要做到
+  这一点得靠检索，而检索可能漏取。结论成立，但要如实交代增益的来源。
+- view 组不如全文记忆：起作用的是知识本身，不是 view 这种形式。
+
+**交付形式：按配方分组的记忆笔记。** 常见的记忆系统存的是一条条自然语言条目（事实、经验、操作步骤），没有关系
+表；把说明表原样贴成表格，会被说成"还是你们的产物格式"。所以记忆写成笔记，但内容和说明表逐字对等：
+
+- 由脚本按固定模板从说明表的每一行渲染，字段内容原样保留，只加 "When a question says:"、"Condition:" 这类固定
+  的模板词。不用大模型改写，改写会增删信息，对等性就无法证明。
+- 库里不建 view，所以笔记里的 view 名一律换成 `WITH` 子句名（`av_dept_course` 换成 `dept_course`，另外两个同理，
+  和 C 组一致），包括粒度边表模板里的 `FROM av_dept_tip_offering_course` 这类写法。
+- 按配方分组：一个 view 对应一张"配方卡片"，卡片里依次是这个配方的 `WITH` 子句、摘要、列的笔记、说法对应条件的
+  笔记、聚合笔记。精选记忆按配方取舍，正好整张卡片保留或去掉。卡片和笔记的顺序固定，两组相同，避免位置效应的
+  质疑。
+
+各部分怎样变成笔记、两组各给哪些：
+
+| 来源 | 变成的笔记 | 全文记忆 | 精选记忆 |
+|---|---|---|---|
+| 三个 view 的建表 SQL（`views/dept_views.sql`，8,457 字符） | 配方卡片开头的 `WITH` 子句 | 3 张卡片都有 | 只有 gold 用到的卡片 |
+| `av_catalog` 的 `grain`、`description`、`use_for` | 配方摘要：连了什么、一行是什么、适合哪类问题 | 3 条 | 3 条都给 |
+| `av_measure_route` | 量的笔记：要算某个量，用哪个配方、结果在什么粒度、怎么算、哪些相近的量在别处算 | 7 条 | 7 条都给 |
+| 语义表中 `kind = column` 的行 | 列的笔记 | 全部 | 只在 gold 用到的卡片里 |
+| 语义表中的 `filter`、`filter_combo` 行 | 说法对应条件的笔记：题目怎么说、用什么条件、在什么粒度上用、注意什么 | 全部 | 同上 |
+| 粒度表和粒度边表 | 聚合笔记：每个粒度一行代表什么，从哪个粒度怎样上卷到哪个粒度，附原样的 SQL 模板 | 全部 | 同上 |
+| `av_view_join` | 组合配方的笔记 | 3 条 | 用到两个配方时只给对应的那一条 |
+
+配方摘要和量的笔记在精选记忆里也全部给出，因为 view 组每题都读完整个目录和量表；`av_view_join` 只在用到两个配方
+时给，因为 view 组只在 plan 用了两个以上 view 时才读它。每题用了哪几个 view，用构建脚本选题时的同一套规则算出：
+`join_blocks` 把 gold SQL 拆成连接块，再和各 view 的连接路径比对（`select_view_set_tasks` 内部就是这样判断的，目前
+只返回题号，实现时要让它同时给出每题的 view），不需要手工挑。预计全文记忆约 6 万字符（说明 53,007 字符加 SQL），精选记忆平均
+约 3 万字符。
+
+笔记的样子（示意，内容取自现有的行，括号处原样填入对应字段）：
+
+```text
+[Measure note] term_enrollment_max_avg
+What it is: Enrolled students in the subjects a department offered in one term, ... (measure)
+Use recipe: dept_offering_summary; the result is at department grain.
+How: Apply the term condition (:term) and ... (how)
+Not for: Statistics of the graduate-level ... on dept_tip_offering_course. ... (not_for)
+
+[Phrase note] dept_offering_summary: term
+When a question says: Offerings of one term. (meaning)
+Condition: TERM_CODE = :term (sql_expression)
+Parameters: :term is a term code: the year followed by FA, SP, SU or JA, for example '2021FA'. (parameters)
+Apply on rows at summary_offering grain; it tests the summary_offering grain. (applies_at_grain, describes_grain)
+```
+
+**提示和运行条件。**
+
+- 流程指令和 `view_plan` 一致：先读记忆里的配方摘要和量的笔记；把题目拆成子任务写入 `/tmp/c0-output/plan.md`，
+  每行是 `subtask | measure_id | recipe | grain | reason`；每个子任务用对应配方的 `WITH` 子句算好；用了两个以上配方
+  时按组合笔记上卷、连接；写 `final.json` 前逐列核对。"量表不完整"的说明和四条粒度规则逐字保留。流程指令不属于
+  记忆，两组都给，否则增益分不清来自 view 还是来自流程。
+- 后面接相同的领域知识段落；模型、thinking 档位、14 道题、评测器和重复次数都和 `view_plan` 相同。
+- 运行前删掉库里所有 `av_` 对象（`views/drop_dept_semantics.sql`），和第二轮跑 B、C 组时一样。
+- 每组都报提示长度、轮数、token 和耗时。view 组的提示固定为 6,673 字符，不随知识增加而变长，这可能是它的主要优势。
+
+**用测试保证对等（实现时先写）。**
+
+- 每张说明表的每一行、每个非空字段，换完名字后都逐字出现在全文记忆里；`views/dept_views.sql` 里三个 view 的查询
+  也逐字出现。
+- 精选记忆里，配方卡片恰好是 gold 用到的那几个 view；配方摘要和量的笔记一条不少；`av_view_join` 的笔记恰好对应
+  用到的那对配方。
+- 两组提示里都不出现 `av_` 名字。
+- 笔记里除了固定的模板词，没有说明表以外的内容。
+- 生成后 `experiments/dept_views/` 里原有文件逐字节不变。
+
+**可选的第三组（暂不做）。** view 组和精选记忆之间其实有两处不同：说明是按需查询还是事先放进提示，view 能否直接
+执行。如果要分开，可以加一组"说明表照样放在库里按需读，但库里没有 view，只在说明里附上建 view 的 SQL"。它和
+view 组只差"能否执行"，和精选记忆只差"按需查询还是放进提示"。等两组记忆的结果出来再决定。
